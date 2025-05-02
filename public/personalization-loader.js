@@ -68,6 +68,12 @@
     
     // Set up event tracking
     setupEventTracking();
+    
+    // Add dashboard toggle button for easy access
+    addDashboardToggleButton();
+    
+    // Add keyboard shortcut for dashboard
+    setupDashboardShortcut();
   }
   
   // Get the user type from the API
@@ -511,6 +517,12 @@
   
   // Create and show test results dashboard
   function showTestResultsDashboard(data) {
+    // Remove existing dashboard if any
+    const existingDashboard = document.getElementById('cursor-results-dashboard');
+    if (existingDashboard) {
+      existingDashboard.remove();
+    }
+    
     // Create dashboard element
     const dashboard = document.createElement('div');
     dashboard.id = 'cursor-results-dashboard';
@@ -542,11 +554,22 @@
       cursor: move;
     `;
     header.innerHTML = `
-      <div>
+      <div style="flex: 1;">
         <span style="font-size: 14px;">Cursor AI CRO Results</span>
         <span style="font-size: 11px; opacity: 0.8; display: block; margin-top: 2px;">${state.pageUrl}</span>
       </div>
-      <div>
+      <div style="display: flex; align-items: center;">
+        <span style="font-size: 10px; opacity: 0.7; margin-right: 10px;">Ctrl+Shift+D</span>
+        <button id="cursor-dashboard-share" style="
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: white;
+          margin-right: 10px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 10px;
+        ">Share</button>
         <button id="cursor-dashboard-close" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
       </div>
     `;
@@ -704,6 +727,15 @@
       if (e.target.id === 'cursor-dashboard-close') {
         dashboard.remove();
         localStorage.removeItem('cursor_show_results');
+      } else if (e.target.id === 'cursor-dashboard-share') {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('show_cursor_results', 'true');
+        navigator.clipboard.writeText(currentUrl.toString()).then(() => {
+          e.target.textContent = 'Copied!';
+          setTimeout(() => {
+            e.target.textContent = 'Share';
+          }, 2000);
+        });
       }
     });
     
@@ -738,4 +770,77 @@
   
   // Initialize results check with a delay
   setTimeout(checkShowTestResults, 2000);
+
+  // Add a floating button to toggle the dashboard
+  function addDashboardToggleButton() {
+    const toggleButton = document.createElement('div');
+    toggleButton.id = 'cursor-dashboard-toggle';
+    toggleButton.innerHTML = `
+      <div style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #4f46e5;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 999998;
+        transition: all 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">
+        <span style="font-size: 18px; font-weight: bold;">CR</span>
+      </div>
+    `;
+    
+    // Add tooltip on hover
+    const button = toggleButton.querySelector('div');
+    button.title = 'Show A/B Test Results (Ctrl+Shift+D)';
+    
+    // Add toggle functionality
+    button.addEventListener('mouseenter', () => {
+      button.style.transform = 'scale(1.1)';
+    });
+    
+    button.addEventListener('mouseleave', () => {
+      button.style.transform = 'scale(1)';
+    });
+    
+    button.addEventListener('click', () => {
+      toggleDashboard();
+    });
+    
+    document.body.appendChild(toggleButton);
+  }
+  
+  // Setup keyboard shortcut (Ctrl+Shift+D) to toggle dashboard
+  function setupDashboardShortcut() {
+    document.addEventListener('keydown', (e) => {
+      // Check for Ctrl+Shift+D
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        toggleDashboard();
+      }
+    });
+  }
+  
+  // Toggle dashboard visibility
+  function toggleDashboard() {
+    const existingDashboard = document.getElementById('cursor-results-dashboard');
+    
+    if (existingDashboard) {
+      // Dashboard exists, hide it
+      existingDashboard.remove();
+      localStorage.removeItem('cursor_show_results');
+    } else {
+      // Show dashboard
+      localStorage.setItem('cursor_show_results', 'true');
+      loadTestResults();
+    }
+  }
 })();
