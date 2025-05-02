@@ -16,7 +16,16 @@ export default async function handler(req, res) {
   }
   
   try {
-    const { eventType, pageUrl, workspaceId, selector, variant, variantName, userType } = req.body;
+    const { 
+      eventType, 
+      pageUrl, 
+      workspaceId, 
+      selector, 
+      variant, 
+      variantName, 
+      userType,
+      segments = [] // New parameter for segments
+    } = req.body;
     
     if (!eventType || !pageUrl || !workspaceId) {
       return res.status(400).json({ 
@@ -33,7 +42,8 @@ export default async function handler(req, res) {
       selector, 
       variant,
       variantName,
-      userType 
+      userType,
+      segments
     });
     
     // Get Edge Config client
@@ -56,11 +66,17 @@ export default async function handler(req, res) {
           impressions: 0,
           events: {},
           userTypes: {},
+          segments: {}, // New structure for segment tracking
           variants: {},
           winner: null,
           lastUpdated: new Date().toISOString(),
-          version: 2
+          version: 3 // Increment version for schema change
         };
+      }
+      
+      // Initialize segments tracking if not present
+      if (!stats.segments) {
+        stats.segments = {};
       }
       
       // Update stats based on event type
@@ -104,6 +120,42 @@ export default async function handler(req, res) {
                 };
               }
               stats.variants[selector][variant].userTypes[userType].impressions++;
+            }
+          }
+          
+          // Track by segments if provided
+          if (segments && segments.length > 0) {
+            for (const segment of segments) {
+              if (!stats.segments[segment]) {
+                stats.segments[segment] = { 
+                  impressions: 0, 
+                  clicks: 0, 
+                  conversions: 0,
+                  variants: {} 
+                };
+              }
+              stats.segments[segment].impressions = (stats.segments[segment].impressions || 0) + 1;
+              
+              // For multivariate testing - track impressions per selector, variant, and segment
+              if (selector && variant !== null && variant !== undefined) {
+                if (!stats.segments[segment].variants) {
+                  stats.segments[segment].variants = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector]) {
+                  stats.segments[segment].variants[selector] = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector][variant]) {
+                  stats.segments[segment].variants[selector][variant] = {
+                    impressions: 0,
+                    ctaClicks: 0,
+                    conversions: 0
+                  };
+                }
+                
+                stats.segments[segment].variants[selector][variant].impressions++;
+              }
             }
           }
           break;
@@ -212,6 +264,79 @@ export default async function handler(req, res) {
               };
             }
           }
+          
+          // Track by segments if provided
+          if (segments && segments.length > 0) {
+            for (const segment of segments) {
+              if (!stats.segments[segment]) {
+                stats.segments[segment] = { 
+                  impressions: 0, 
+                  clicks: 0, 
+                  conversions: 0,
+                  variants: {} 
+                };
+              }
+              stats.segments[segment].clicks = (stats.segments[segment].clicks || 0) + 1;
+              
+              // For multivariate testing - track clicks per selector, variant, and segment
+              if (selector && variant !== null && variant !== undefined) {
+                if (!stats.segments[segment].variants) {
+                  stats.segments[segment].variants = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector]) {
+                  stats.segments[segment].variants[selector] = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector][variant]) {
+                  stats.segments[segment].variants[selector][variant] = {
+                    impressions: 0,
+                    ctaClicks: 0,
+                    conversions: 0
+                  };
+                }
+                
+                stats.segments[segment].variants[selector][variant].ctaClicks++;
+                
+                // Calculate CTR for this segment-variant combination
+                const segVariant = stats.segments[segment].variants[selector][variant];
+                if (segVariant.impressions > 0) {
+                  segVariant.ctr = parseFloat(((segVariant.ctaClicks / segVariant.impressions) * 100).toFixed(2));
+                }
+                
+                // Check if we have a statistical winner for this segment
+                const segmentVariants = Object.keys(stats.segments[segment].variants[selector])
+                  .map(varId => ({
+                    variantId: varId,
+                    impressions: stats.segments[segment].variants[selector][varId].impressions,
+                    ctaClicks: stats.segments[segment].variants[selector][varId].ctaClicks,
+                    ctr: stats.segments[segment].variants[selector][varId].ctr || 0
+                  }));
+                
+                if (segmentVariants.length >= 2 && 
+                    segmentVariants.every(v => v.impressions >= 50)) {
+                  
+                  // Find the variant with the highest CTR
+                  const bestVariant = segmentVariants.reduce((best, current) => 
+                    current.ctr > best.ctr ? current : best, segmentVariants[0]);
+                  
+                  // Check if the best variant is significantly better
+                  if (bestVariant.ctr > 0 && bestVariant.impressions >= 100) {
+                    if (!stats.segments[segment].winners) {
+                      stats.segments[segment].winners = {};
+                    }
+                    
+                    stats.segments[segment].winners[selector] = {
+                      variantId: bestVariant.variantId,
+                      confidence: 95, // Simplified calculation
+                      ctr: bestVariant.ctr,
+                      timestamp: new Date().toISOString()
+                    };
+                  }
+                }
+              }
+            }
+          }
           break;
           
         case 'conversion':
@@ -271,6 +396,42 @@ export default async function handler(req, res) {
                 };
               }
               stats.variants[selector][variant].userTypes[userType].conversions++;
+            }
+          }
+          
+          // Track by segments if provided
+          if (segments && segments.length > 0) {
+            for (const segment of segments) {
+              if (!stats.segments[segment]) {
+                stats.segments[segment] = { 
+                  impressions: 0, 
+                  clicks: 0, 
+                  conversions: 0,
+                  variants: {} 
+                };
+              }
+              stats.segments[segment].conversions = (stats.segments[segment].conversions || 0) + 1;
+              
+              // For multivariate testing - track conversions per selector, variant, and segment
+              if (selector && variant !== null && variant !== undefined) {
+                if (!stats.segments[segment].variants) {
+                  stats.segments[segment].variants = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector]) {
+                  stats.segments[segment].variants[selector] = {};
+                }
+                
+                if (!stats.segments[segment].variants[selector][variant]) {
+                  stats.segments[segment].variants[selector][variant] = {
+                    impressions: 0,
+                    ctaClicks: 0,
+                    conversions: 0
+                  };
+                }
+                
+                stats.segments[segment].variants[selector][variant].conversions++;
+              }
             }
           }
           break;

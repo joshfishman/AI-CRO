@@ -21,7 +21,12 @@
     startTime: Date.now(),
     appliedVariants: {}, // Track which variants were applied for each selector
     cachedResults: {}, // Cache of personalization results
-    lastCacheUpdate: null // When cache was last updated
+    lastCacheUpdate: null, // When cache was last updated
+    userSegments: [],
+    visitorData: {},
+    lastClickedSelector: null,
+    lastClickedVariant: null,
+    lastClickedVariantName: null
   };
 
   // Initialize the personalization
@@ -89,30 +94,107 @@
       if (urlParams.has('user_type')) {
         const paramUserType = urlParams.get('user_type');
         console.log(`Cursor AI-CRO: User type from URL parameter: ${paramUserType}`);
+        state.userSegments = [paramUserType];
         return paramUserType;
       }
       
-      // Try to get the user type based on various identifiers
+      // Collect visitor data for advanced targeting
       const email = getEmailFromPage() || getEmailFromCookie();
-      const ipAddress = await getClientIP();
+      const deviceType = getDeviceType();
+      const browser = getBrowserInfo();
+      const referrer = document.referrer;
+      const timeOnSite = getTimeOnSite();
+      const pageViews = getPageViews();
+      const lastVisit = getLastVisitTimestamp();
       
+      // Get location if available
+      let location = null;
+      if (navigator.geolocation) {
+        try {
+          location = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              position => {
+                resolve(`${position.coords.latitude},${position.coords.longitude}`);
+              },
+              error => {
+                console.warn('Geolocation error:', error);
+                resolve(null);
+              },
+              { timeout: 5000 }
+            );
+          });
+        } catch (geoError) {
+          console.warn('Error getting geolocation:', geoError);
+        }
+      }
+      
+      // Create query parameters for API call
       const params = new URLSearchParams();
       if (email) params.append('email', email);
+      
+      // Get client IP
+      const ipAddress = await getClientIP();
       if (ipAddress) params.append('ipAddress', ipAddress);
+      
+      // Add other parameters
+      if (deviceType) params.append('deviceType', deviceType);
+      if (browser) params.append('browser', browser);
+      if (referrer) params.append('referrer', referrer);
+      if (location) params.append('location', location);
+      if (timeOnSite !== null) params.append('timeOnSite', timeOnSite.toString());
+      if (pageViews !== null) params.append('pageViews', pageViews.toString());
+      if (lastVisit !== null) params.append('lastVisit', lastVisit.toString());
+      
+      // Add workspace ID
       params.append('workspaceId', state.workspaceId);
       
-      const response = await fetch(`${state.apiBase}/api/get-user-type?${params.toString()}`);
+      // Choose API endpoint - use advanced targeting if available
+      let apiEndpoint = 'get-user-type';
+      let useAdvancedTargeting = true;
+      
+      try {
+        // Check if advanced targeting is available by making a HEAD request
+        const checkResponse = await fetch(`${state.apiBase}/api/advanced-targeting`, {
+          method: 'HEAD'
+        });
+        
+        if (checkResponse.ok) {
+          apiEndpoint = 'advanced-targeting';
+        } else {
+          useAdvancedTargeting = false;
+        }
+      } catch (error) {
+        console.warn('Advanced targeting not available, using basic targeting');
+        useAdvancedTargeting = false;
+      }
+      
+      // Make API call to get user type/segments
+      const response = await fetch(`${state.apiBase}/api/${apiEndpoint}?${params.toString()}`);
       
       if (!response.ok) {
-        throw new Error(`Failed to get user type: ${response.status}`);
+        throw new Error(`Failed to get user segments: ${response.status}`);
       }
       
       const data = await response.json();
-      state.userType = data.userType || 'unknown';
-      console.log(`Cursor AI-CRO: User type detected: ${state.userType}`);
+      
+      if (useAdvancedTargeting) {
+        // Store segments for advanced targeting
+        state.userType = data.userType || 'unknown';
+        state.userSegments = data.segments || [];
+        state.visitorData = data.visitorData || {};
+        
+        console.log(`Cursor AI-CRO: User type: ${state.userType}, Segments:`, state.userSegments);
+      } else {
+        // Basic targeting just returns userType
+        state.userType = data.userType || 'unknown';
+        state.userSegments = [state.userType];
+        
+        console.log(`Cursor AI-CRO: User type detected: ${state.userType}`);
+      }
     } catch (error) {
       console.warn('Cursor AI-CRO: Error getting user type, using default', error);
       state.userType = 'unknown';
+      state.userSegments = ['unknown'];
     }
     
     return state.userType;
@@ -322,38 +404,63 @@
 
   // Select the appropriate variants for the user type
   function selectVariantsForUserType(selectors, userType) {
-    const selectedVariants = {};
+    if (!selectors || !selectors.length) {
+      return [];
+    }
     
-    selectors.forEach(selectorConfig => {
-      const { selector, variants, contentType, default: defaultContent } = selectorConfig;
+    const userSegments = state.userSegments || [userType];
+    
+    return selectors.map(selector => {
+      if (!selector.variants || !Array.isArray(selector.variants) || selector.variants.length === 0) {
+        return {
+          selector: selector.selector,
+          contentType: selector.contentType || 'text',
+          content: selector.default,
+          isDefault: true,
+          variantIndex: 0
+        };
+      }
       
-      // Find variants that match this user type, or the 'all' user type
-      const matchingVariants = variants.filter(variant => 
-        variant.userType === userType || variant.userType === 'all'
+      // Find all variants that match any of the user's segments
+      const matchingVariants = selector.variants.filter(variant => 
+        !variant.userType || 
+        variant.userType === 'all' || 
+        userSegments.includes(variant.userType)
       );
       
-      // If there's a variant specifically for this user type, prioritize it
-      const userTypeVariant = matchingVariants.find(v => v.userType === userType);
-      const allUsersVariant = matchingVariants.find(v => v.userType === 'all');
+      // If no matching variants, use default variant
+      if (matchingVariants.length === 0) {
+        const defaultVariant = selector.variants.find(v => v.isDefault) || selector.variants[0];
+        return {
+          selector: selector.selector,
+          contentType: selector.contentType || 'text',
+          content: defaultVariant.content,
+          isDefault: defaultVariant.isDefault || false,
+          variantIndex: selector.variants.indexOf(defaultVariant)
+        };
+      }
       
-      // Find the default variant
-      const defaultVariant = variants.find(v => v.isDefault);
+      // Randomly select one of the matching variants (for A/B testing)
+      // We weight exact matches higher than general matches
+      const exactMatches = matchingVariants.filter(v => userSegments.includes(v.userType));
       
-      // The variant to use (in order of priority)
-      const variantToUse = userTypeVariant || allUsersVariant || defaultVariant || variants[0];
+      let selectedVariant;
+      if (exactMatches.length > 0) {
+        // Prioritize exact matches
+        selectedVariant = exactMatches[Math.floor(Math.random() * exactMatches.length)];
+      } else {
+        // Fall back to 'all' type variants
+        selectedVariant = matchingVariants[Math.floor(Math.random() * matchingVariants.length)];
+      }
       
-      // Record the applied variant in state
-      selectedVariants[selector] = {
-        content: variantToUse.content,
-        contentType: contentType || 'text',
-        variantName: variantToUse.name || 'Variant',
-        variantId: variants.indexOf(variantToUse),
-        isDefault: variantToUse.isDefault || false,
-        userType: variantToUse.userType || 'all'
+      return {
+        selector: selector.selector,
+        contentType: selector.contentType || 'text',
+        content: selectedVariant.content,
+        isDefault: selectedVariant.isDefault || false,
+        variantIndex: selector.variants.indexOf(selectedVariant)
       };
     });
-    
-    return selectedVariants;
   }
   
   // Apply the selected variants to the page
@@ -524,22 +631,52 @@
         state.lastClickedVariantName = variantName;
       }
       
-      await fetch(`${state.apiBase}/api/record-event`, {
+      if (!state.apiBase) {
+        console.warn('Cursor AI-CRO: Cannot record event, API base not set');
+        return;
+      }
+      
+      const eventData = {
+        eventType,
+        pageUrl: state.pageUrl,
+        workspaceId: state.workspaceId,
+        userType: state.userType,
+        segments: state.userSegments || [], // Include user segments in event data
+        timestamp: new Date().toISOString()
+      };
+      
+      // Add selector and variant info if available
+      if (selector) {
+        eventData.selector = selector;
+        
+        if (variant !== undefined && variant !== null) {
+          eventData.variant = variant;
+        }
+        
+        if (variantName) {
+          eventData.variantName = variantName;
+        }
+      }
+      
+      // Record the event
+      const response = await fetch(`${state.apiBase}/api/record-event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          eventType,
-          pageUrl: state.pageUrl,
-          workspaceId: state.workspaceId,
-          userType: state.userType,
-          selector,
-          variant,
-          variantName,
-          timestamp: new Date().toISOString()
-        })
+        body: JSON.stringify(eventData)
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to record event: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // If a winner was determined, log it
+      if (result.winner) {
+        console.log(`Cursor AI-CRO: Winner determined for ${result.winner.selector}:`, result.winner);
+      }
       
       // Also send event to Google Tag Manager if available
       if (window.dataLayer) {
@@ -548,11 +685,15 @@
           cursor_selector: selector,
           cursor_variant: variant,
           cursor_variant_name: variantName,
-          cursor_user_type: state.userType
+          cursor_user_type: state.userType,
+          cursor_segments: state.userSegments || [] // Include segments
         });
       }
+      
+      return result;
     } catch (error) {
-      console.warn(`Cursor AI-CRO: Failed to record ${eventType} event:`, error);
+      console.warn('Cursor AI-CRO: Error recording event:', error);
+      return null;
     }
   }
   
@@ -979,5 +1120,76 @@
       localStorage.setItem('cursor_show_results', 'true');
       loadTestResults();
     }
+  }
+
+  // Detect device type (mobile, desktop, tablet)
+  function getDeviceType() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(userAgent)) {
+      return 'tablet';
+    }
+    
+    if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(userAgent)) {
+      return 'mobile';
+    }
+    
+    return 'desktop';
+  }
+
+  // Get browser information
+  function getBrowserInfo() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.indexOf('firefox') > -1) {
+      return 'firefox';
+    } else if (userAgent.indexOf('edg') > -1) {
+      return 'edge';
+    } else if (userAgent.indexOf('chrome') > -1) {
+      return 'chrome';
+    } else if (userAgent.indexOf('safari') > -1) {
+      return 'safari';
+    } else if (userAgent.indexOf('opera') > -1 || userAgent.indexOf('opr') > -1) {
+      return 'opera';
+    } else if (userAgent.indexOf('trident') > -1 || userAgent.indexOf('msie') > -1) {
+      return 'ie';
+    }
+    
+    return 'unknown';
+  }
+
+  // Get time spent on site in seconds
+  function getTimeOnSite() {
+    // Check if we have a session start time in sessionStorage
+    let sessionStart = sessionStorage.getItem('cursor_session_start');
+    
+    if (!sessionStart) {
+      sessionStart = Date.now().toString();
+      sessionStorage.setItem('cursor_session_start', sessionStart);
+      return 0;
+    }
+    
+    return Math.floor((Date.now() - parseInt(sessionStart)) / 1000);
+  }
+
+  // Get page view count for current session
+  function getPageViews() {
+    let pageViews = parseInt(sessionStorage.getItem('cursor_page_views') || '0');
+    
+    // Increment page views for this session
+    pageViews++;
+    sessionStorage.setItem('cursor_page_views', pageViews.toString());
+    
+    return pageViews;
+  }
+
+  // Get timestamp of last visit
+  function getLastVisitTimestamp() {
+    const lastVisit = localStorage.getItem('cursor_last_visit');
+    
+    // Update last visit timestamp
+    localStorage.setItem('cursor_last_visit', Date.now().toString());
+    
+    return lastVisit;
   }
 })();
