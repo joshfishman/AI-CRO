@@ -1,54 +1,24 @@
 {
   "version": 2,
-  "functions": {
-    "pages/api/selector-bookmarklet.js": {
-      "includeFiles": "public/selector-bookmarklet.js"
-    }
-  },
   "headers": [
     {
-      "source": "/selector-bookmarklet.js",
+      "source": "/api(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
-        { "key": "Content-Type", "value": "application/javascript" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept, x-api-key" }
       ]
     },
     {
-      "source": "/selector-bookmarklet-min.js",
+      "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
-        { "key": "Content-Type", "value": "application/javascript" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/personalization-loader.js",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
-        { "key": "Content-Type", "value": "application/javascript" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept, x-api-key" }
       ]
     }
   ],
-  "routes": [
-    {
-      "src": "/selector-bookmarklet.js",
-      "dest": "/public/selector-bookmarklet.js"
-    },
-    {
-      "src": "/selector-bookmarklet-min.js",
-      "dest": "/public/selector-bookmarklet-min.js"
-    },
-    {
-      "src": "/personalization-loader.js",
-      "dest": "/public/personalization-loader.js"
-    }
-  ]
+  "github": {
+    "silent": false
+  }
 } 
