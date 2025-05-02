@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
   
   try {
-    const { selectors, userType, pageUrl, workspaceId, generateVariants, variantCount } = req.body;
+    const { selectors, userType, pageUrl, workspaceId, generateVariants, variantCount, forceRefresh } = req.body;
     
     if (!selectors || !Array.isArray(selectors) || selectors.length === 0) {
       return res.status(400).json({ error: 'Invalid selectors provided' });
@@ -30,25 +30,51 @@ export default async function handler(req, res) {
       workspaceId, 
       selectors: selectors.length,
       generateVariants,
-      variantCount
+      variantCount,
+      forceRefresh
     });
     
-    // Get OpenAI API key from environment variables
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      console.error('OPENAI_API_KEY not configured');
-      return res.status(500).json({ error: 'OpenAI API key not configured' });
-    }
+    // Initialize Edge Config client for caching
+    const edgeConfig = createClient(process.env.EDGE_CONFIG);
     
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: openaiApiKey
-    });
-
     // Check if we need to generate multiple variants
     if (generateVariants && selectors.length === 1) {
-      // Generate multiple variants for multivariate testing
+      // Check if we have cached variants for this selector and should use them
+      if (!forceRefresh) {
+        try {
+          const selector = selectors[0];
+          const cacheKey = `variants:${workspaceId}:${pageUrl}:${selector.selector}`;
+          const cachedVariants = await edgeConfig.get(cacheKey);
+          
+          if (cachedVariants && Array.isArray(cachedVariants) && cachedVariants.length > 0) {
+            console.log(`Using cached variants for ${selector.selector}`);
+            return res.status(200).json({
+              variants: cachedVariants,
+              selector: selector.selector,
+              userType,
+              timestamp: new Date().toISOString(),
+              fromCache: true
+            });
+          }
+        } catch (cacheError) {
+          console.warn('Cache lookup failed, will generate new variants:', cacheError);
+        }
+      }
+      
+      // No cache hit or forced refresh, generate new variants
       try {
+        // Get OpenAI API key from environment variables
+        const openaiApiKey = process.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+          console.error('OPENAI_API_KEY not configured');
+          return res.status(500).json({ error: 'OpenAI API key not configured' });
+        }
+        
+        // Initialize OpenAI client
+        const openai = new OpenAI({
+          apiKey: openaiApiKey
+        });
+        
         const selector = selectors[0];
         const variants = await generateVariantOptions(
           openai,
@@ -56,6 +82,15 @@ export default async function handler(req, res) {
           selector.default,
           variantCount || 3
         );
+        
+        // Cache the generated variants
+        try {
+          const cacheKey = `variants:${workspaceId}:${pageUrl}:${selector.selector}`;
+          await edgeConfig.set(cacheKey, variants);
+          console.log(`Cached variants for ${selector.selector}`);
+        } catch (setCacheError) {
+          console.warn('Failed to cache variants:', setCacheError);
+        }
         
         return res.status(200).json({
           variants,
@@ -69,11 +104,63 @@ export default async function handler(req, res) {
       }
     }
     
+    // Process each selector
+    const configKey = `page:${workspaceId}:${pageUrl}`;
+    let config = null;
+    
+    // Try to get the stored configuration first
+    try {
+      config = await edgeConfig.get(configKey);
+      console.log(`Retrieved config for ${configKey}`, !!config);
+    } catch (configError) {
+      console.warn(`Could not retrieve config for ${configKey}:`, configError);
+    }
+    
     // Process each selector and generate personalized content based on user type
     const results = await Promise.all(
       selectors.map(async (selector) => {
         try {
-          // New format might have variants already defined
+          // Check if this selector has stored config with variants
+          let storedSelector = null;
+          if (config && config.selectors) {
+            storedSelector = config.selectors.find(s => s.selector === selector.selector);
+          }
+          
+          // Use stored selector if available and not forcing refresh
+          if (storedSelector && storedSelector.variants && 
+              Array.isArray(storedSelector.variants) && 
+              storedSelector.variants.length > 0 && 
+              !forceRefresh) {
+            
+            console.log(`Using stored variants for ${selector.selector}`);
+            
+            // Find the appropriate variant for this user type
+            const matchingVariants = storedSelector.variants.filter(variant => 
+              variant.userType === userType || variant.userType === 'all'
+            );
+            
+            // Prioritize exact user type match, then 'all', then default
+            const userTypeVariant = matchingVariants.find(v => v.userType === userType);
+            const allUsersVariant = matchingVariants.find(v => v.userType === 'all');
+            const noUserTypeVariant = storedSelector.variants.find(v => v.userType === 'none' || v.userType === '');
+            const defaultVariant = storedSelector.variants.find(v => v.isDefault) || storedSelector.variants[0];
+            
+            // Use the appropriate variant
+            const variantToUse = userTypeVariant || allUsersVariant || (userType === 'unknown' ? noUserTypeVariant : null) || defaultVariant;
+            
+            return {
+              selector: storedSelector.selector,
+              contentType: storedSelector.contentType || 'text',
+              result: variantToUse.content,
+              variant: storedSelector.variants.indexOf(variantToUse),
+              variantName: variantToUse.name || 'Variant',
+              default: storedSelector.default || variantToUse.content,
+              isDefault: variantToUse.isDefault || false,
+              fromCache: true
+            };
+          }
+          
+          // If we have variants defined in the request itself
           if (selector.variants && Array.isArray(selector.variants) && selector.variants.length > 0) {
             // Find the appropriate variant for this user type
             const matchingVariants = selector.variants.filter(variant => 
@@ -99,7 +186,20 @@ export default async function handler(req, res) {
               isDefault: variantToUse.isDefault || false
             };
           } else {
-            // Legacy format - generate content using OpenAI
+            // Last resort: Legacy format - generate content using OpenAI
+            console.log(`No stored variants for ${selector.selector}, generating with AI`);
+            
+            // Get OpenAI API key from environment variables
+            const openaiApiKey = process.env.OPENAI_API_KEY;
+            if (!openaiApiKey) {
+              throw new Error('OpenAI API key not configured');
+            }
+            
+            // Initialize OpenAI client
+            const openai = new OpenAI({
+              apiKey: openaiApiKey
+            });
+            
             const generatedContent = await generatePersonalizedContent(
               openai, 
               selector.prompt, 
@@ -113,7 +213,8 @@ export default async function handler(req, res) {
               result: generatedContent,
               default: selector.default,
               isDefault: false,
-              variantName: 'AI Generated'
+              variantName: 'AI Generated',
+              wasGenerated: true
             };
           }
         } catch (error) {
@@ -134,7 +235,6 @@ export default async function handler(req, res) {
     // If a specific workspaceId is provided, log this personalization attempt
     if (workspaceId && pageUrl) {
       try {
-        const edgeConfig = createClient(process.env.EDGE_CONFIG);
         const statsKey = `stats:${workspaceId}:${pageUrl}`;
         
         // Create or increment stats counters for AB testing
@@ -146,8 +246,8 @@ export default async function handler(req, res) {
       }
     }
     
-    // Cache the response for a short time (30 seconds)
-    res.setHeader('Cache-Control', 's-maxage=30');
+    // Cache the response for a short time (120 seconds)
+    res.setHeader('Cache-Control', 's-maxage=120');
     
     return res.status(200).json({ 
       results,

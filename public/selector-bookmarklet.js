@@ -664,25 +664,88 @@
     refreshVariantsList(elementIndex);
   };
   
-  // Generate variants using the OpenAI API
+  // Generate variants using AI
   const generateVariants = async (elementIndex) => {
-    const element = selectedElements[elementIndex];
-    const prompt = element.prompt;
+    const elementConfig = selectedElements[elementIndex];
+    const variantsContainer = document.querySelector(`#cursor-variants-${elementIndex}`);
     
-    if (!prompt) {
-      alert('Please enter a prompt for AI generation');
-      return;
-    }
+    // Show loading state
+    const loadingEl = document.createElement('div');
+    loadingEl.classList.add('cursor-variants-loading');
+    loadingEl.innerHTML = `<div style="text-align: center; padding: 15px; color: #777;">
+      <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="animation: cursor-spin 1s linear infinite;">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="#ccc" stroke-width="2" />
+        <path fill="none" stroke="#777" stroke-width="2" d="M12 2a10 10 0 0 1 10 10" />
+      </svg>
+      <style>@keyframes cursor-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+      <p style="margin-top: 10px;">Generating variants...</p>
+    </div>`;
+    variantsContainer.appendChild(loadingEl);
     
     try {
-      // Update UI to show generating state
-      const generateBtn = document.querySelector(`.cursor-generate-btn[data-index="${elementIndex}"]`);
-      if (generateBtn) {
-        generateBtn.textContent = 'Generating...';
-        generateBtn.disabled = true;
+      // Get URL parameters for workspace
+      const urlParams = new URLSearchParams(window.location.search);
+      const workspaceId = urlParams.get('workspace') || 'default';
+      const forceRefresh = urlParams.has('force_refresh') || false;
+      
+      // First, check if we have cached variants in Edge Config
+      if (!forceRefresh) {
+        try {
+          // Try to get cached variants from the Edge Config
+          const response = await fetch(`${apiBase}/api/get-cached-variants`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': editorKey
+            },
+            body: JSON.stringify({
+              selector: elementConfig.selector,
+              pageUrl: window.location.pathname,
+              workspaceId
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            // If we have cached variants, use them
+            if (data.variants && data.variants.length > 0) {
+              console.log('Retrieved cached variants from Edge Config');
+              variantsContainer.removeChild(loadingEl);
+              
+              // Add new variants from the cache
+              data.variants.forEach((variantContent, i) => {
+                // Skip the first variant which is usually the default
+                if (i === 0 && elementConfig.variants.length > 0) return;
+                
+                // Create a new variant with the generated content
+                const newVariant = {
+                  content: variantContent,
+                  userType: 'all',
+                  isDefault: false,
+                  name: `Variant ${elementConfig.variants.length + 1}`
+                };
+                
+                // Add to the element config
+                elementConfig.variants.push(newVariant);
+              });
+              
+              // Refresh the variants UI
+              refreshVariantsList(elementIndex);
+              return;
+            }
+          }
+        } catch (cacheError) {
+          console.warn('Failed to check for cached variants:', cacheError);
+        }
       }
       
-      // Call the API to generate variants
+      // No cached variants available or force refresh, generate with AI
+      const prompt = document.querySelector(`#cursor-prompt-${elementIndex}`).value;
+      const contentType = elementConfig.contentType;
+      const defaultContent = elementConfig.default;
+      
+      // Make API request to get variants
       const response = await fetch(`${apiBase}/api/personalize`, {
         method: 'POST',
         headers: {
@@ -691,65 +754,71 @@
         },
         body: JSON.stringify({
           selectors: [{
-            selector: element.selector,
-            prompt: element.prompt,
-            default: element.default
+            selector: elementConfig.selector,
+            prompt,
+            default: defaultContent,
+            contentType
           }],
-          userType: 'all',
           generateVariants: true,
-          variantCount: MAX_VARIANTS - 1 // Generate additional variants (one is already the default)
+          variantCount: 3,
+          pageUrl: window.location.pathname,
+          workspaceId
         })
       });
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`Failed to generate variants: ${response.status}`);
       }
       
       const data = await response.json();
       
-      // If no variants were returned
-      if (!data.variants || !data.variants.length) {
-        throw new Error('No variants generated');
+      // Store the new variants in Edge Config
+      try {
+        await fetch(`${apiBase}/api/cache-variants`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': editorKey
+          },
+          body: JSON.stringify({
+            selector: elementConfig.selector,
+            variants: data.variants,
+            pageUrl: window.location.pathname,
+            workspaceId
+          })
+        });
+        console.log('Cached variants in Edge Config for future use');
+      } catch (cacheError) {
+        console.warn('Failed to cache variants in Edge Config:', cacheError);
       }
       
-      // Keep the default variant
-      const defaultVariant = element.variants.find(v => v.isDefault);
-      
-      // Create new variants from API response
-      element.variants = [defaultVariant];
-      
-      // Add the generated variants
-      data.variants.forEach((content, idx) => {
-        if (idx < MAX_VARIANTS - 1) { // Ensure we don't exceed max variants
-          element.variants.push({
-            content,
-            userType: 'all',
-            isDefault: false,
-            name: `Variant ${idx + 2}` // +2 because idx is 0-based and we already have the default variant
-          });
-        }
+      // Add new variants from the response
+      data.variants.forEach((variantContent, i) => {
+        // Skip the first variant which is usually the default
+        if (i === 0 && elementConfig.variants.length > 0) return;
+        
+        // Create a new variant with the generated content
+        const newVariant = {
+          content: variantContent,
+          userType: 'all',
+          isDefault: false,
+          name: `Variant ${elementConfig.variants.length + 1}`
+        };
+        
+        // Add to the element config
+        elementConfig.variants.push(newVariant);
       });
-      
-      // Refresh the UI
-      refreshVariantsList(elementIndex);
-      
-      // Check if we need to hide the add button
-      if (element.variants.length >= MAX_VARIANTS) {
-        const addBtn = document.querySelector(`.cursor-add-variant-btn[data-index="${elementIndex}"]`);
-        if (addBtn) {
-          addBtn.style.display = 'none';
-        }
-      }
     } catch (error) {
-      console.error('Error generating variants:', error);
-      alert(`Failed to generate variants: ${error.message}`);
+      console.error('Failed to generate variants:', error);
+      alert('Failed to generate variants. Please try again or create variants manually.');
     } finally {
-      // Reset UI
-      const generateBtn = document.querySelector(`.cursor-generate-btn[data-index="${elementIndex}"]`);
-      if (generateBtn) {
-        generateBtn.textContent = 'Generate Variants with AI';
-        generateBtn.disabled = false;
+      // Remove loading indicator
+      if (variantsContainer.contains(loadingEl)) {
+        variantsContainer.removeChild(loadingEl);
       }
+      
+      // Refresh the variants UI
+      refreshVariantsList(elementIndex);
     }
   };
   

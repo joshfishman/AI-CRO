@@ -19,7 +19,9 @@
     workspaceId: null,
     pageUrl: window.location.pathname,
     startTime: Date.now(),
-    appliedVariants: {} // Track which variants were applied for each selector
+    appliedVariants: {}, // Track which variants were applied for each selector
+    cachedResults: {}, // Cache of personalization results
+    lastCacheUpdate: null // When cache was last updated
   };
 
   // Initialize the personalization
@@ -169,6 +171,16 @@
   // Get page configuration from Edge Config
   async function getPageConfig() {
     try {
+      // Check if URL parameter sets a force refresh
+      const urlParams = new URLSearchParams(window.location.search);
+      const forceRefresh = urlParams.has('force_refresh') || urlParams.get('cache') === 'false';
+      
+      // Check for local cache first (unless force refresh is requested)
+      if (!forceRefresh && useCachedConfigIfAvailable()) {
+        console.log('Cursor AI-CRO: Using cached page configuration');
+        return state.config;
+      }
+      
       // Create the URL for config retrieval
       const configUrl = `${state.apiBase}/api/get-config?path=${encodeURIComponent(state.pageUrl)}&workspace=${encodeURIComponent(state.workspaceId)}`;
       
@@ -185,11 +197,69 @@
       const config = await response.json();
       state.config = config;
       
+      // Save to local storage cache with timestamp
+      saveConfigToCache(config);
+      
       console.log(`Cursor AI-CRO: Configuration loaded (${config.selectors?.length || 0} selectors)`);
       return config;
     } catch (error) {
       console.error('Cursor AI-CRO: Error getting page configuration', error);
+      
+      // If fetch fails, try to use cached config as fallback
+      if (useCachedConfigIfAvailable()) {
+        console.log('Cursor AI-CRO: Using cached configuration as fallback');
+        return state.config;
+      }
+      
       return null;
+    }
+  }
+  
+  // Save config to localStorage cache
+  function saveConfigToCache(config) {
+    try {
+      const cacheData = {
+        config: config,
+        timestamp: Date.now(),
+        userType: state.userType
+      };
+      
+      const cacheKey = `cursor_config_${state.workspaceId}_${state.pageUrl}`;
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      state.lastCacheUpdate = cacheData.timestamp;
+      
+      console.log(`Cursor AI-CRO: Saved configuration to cache`);
+    } catch (e) {
+      console.warn('Cursor AI-CRO: Failed to cache config in localStorage', e);
+    }
+  }
+  
+  // Try to use cached config if it's available and fresh enough
+  function useCachedConfigIfAvailable() {
+    try {
+      const cacheKey = `cursor_config_${state.workspaceId}_${state.pageUrl}`;
+      const cachedDataStr = localStorage.getItem(cacheKey);
+      
+      if (!cachedDataStr) return false;
+      
+      const cachedData = JSON.parse(cachedDataStr);
+      const config = cachedData.config;
+      const timestamp = cachedData.timestamp;
+      
+      // Check if cache is still valid (less than 24 hours old)
+      const cacheAge = Date.now() - timestamp;
+      const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
+      
+      if (config && cacheAge < maxCacheAge) {
+        state.config = config;
+        state.lastCacheUpdate = timestamp;
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      console.warn('Cursor AI-CRO: Error reading from cache', e);
+      return false;
     }
   }
   
@@ -206,8 +276,12 @@
     state.processing = true;
     
     try {
-      // For multivariate testing, we'll select the variants to show first
-      // rather than calling the API for every element
+      // Check if URL parameter sets a force refresh
+      const urlParams = new URLSearchParams(window.location.search);
+      const forceRefresh = urlParams.has('force_refresh') || urlParams.get('cache') === 'false';
+      
+      // For multivariate testing, we'll select the variants to show directly from stored config
+      // This prevents calling the AI for every page load
       const selectedVariants = selectVariantsForUserType(state.config.selectors, state.userType);
       
       // Apply the selected variants directly
@@ -230,7 +304,8 @@
       window.dispatchEvent(new CustomEvent('personalizationLoaded', {
         detail: {
           userType: state.userType,
-          selectors: Object.keys(selectedVariants)
+          selectors: Object.keys(selectedVariants),
+          fromCache: !forceRefresh
         }
       }));
     } catch (error) {
