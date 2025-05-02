@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
   
   try {
-    const { eventType, pageUrl, workspaceId, selector, variant, userType } = req.body;
+    const { eventType, pageUrl, workspaceId, selector, variant, variantName, userType } = req.body;
     
     if (!eventType || !pageUrl || !workspaceId) {
       return res.status(400).json({ 
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       workspaceId, 
       selector, 
       variant,
+      variantName,
       userType 
     });
     
@@ -54,10 +55,11 @@ export default async function handler(req, res) {
         stats = {
           impressions: 0,
           events: {},
-          variants: {},
           userTypes: {},
+          variants: {},
           winner: null,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          version: 2
         };
       }
       
@@ -66,25 +68,136 @@ export default async function handler(req, res) {
         case 'impression':
           // Track an impression (page view with personalization)
           stats.impressions = (stats.impressions || 0) + 1;
+          
+          // Track by user type if provided
+          if (userType) {
+            if (!stats.userTypes[userType]) {
+              stats.userTypes[userType] = { impressions: 0, clicks: 0, conversions: 0 };
+            }
+            stats.userTypes[userType].impressions = (stats.userTypes[userType].impressions || 0) + 1;
+          }
+          
+          // For multivariate testing - track impressions per selector and variant
+          if (selector && variant !== null && variant !== undefined) {
+            // Initialize or update the variant tracking structure
+            if (!stats.variants) stats.variants = {};
+            if (!stats.variants[selector]) stats.variants[selector] = {};
+            if (!stats.variants[selector][variant]) {
+              stats.variants[selector][variant] = {
+                impressions: 0,
+                ctaClicks: 0,
+                conversions: 0,
+                userTypes: {}
+              };
+            }
+            
+            // Increment impressions for this variant
+            stats.variants[selector][variant].impressions++;
+            
+            // Track by user type within the variant
+            if (userType) {
+              if (!stats.variants[selector][variant].userTypes[userType]) {
+                stats.variants[selector][variant].userTypes[userType] = {
+                  impressions: 0,
+                  ctaClicks: 0,
+                  conversions: 0
+                };
+              }
+              stats.variants[selector][variant].userTypes[userType].impressions++;
+            }
+          }
           break;
           
         case 'ctaClick':
+          // Increment total CTA clicks
+          stats.ctaClicks = (stats.ctaClicks || 0) + 1;
+          
           // Track a CTA click for a specific selector and variant
           if (selector) {
             // Initialize selectors object if it doesn't exist
             if (!stats.events[selector]) {
-              stats.events[selector] = { clicks: 0, variants: {} };
+              stats.events[selector] = { 
+                clicks: 0, 
+                variants: {},
+                userTypes: {} 
+              };
             }
             
             // Increment total clicks for this selector
             stats.events[selector].clicks = (stats.events[selector].clicks || 0) + 1;
             
             // If a specific variant is provided, track it
-            if (variant) {
-              if (!stats.events[selector].variants[variant]) {
-                stats.events[selector].variants[variant] = 0;
+            if (variant !== null && variant !== undefined) {
+              const variantKey = variantName || variant;
+              if (!stats.events[selector].variants[variantKey]) {
+                stats.events[selector].variants[variantKey] = {
+                  clicks: 0,
+                  impressions: 0,
+                  conversions: 0,
+                  userTypes: {}
+                };
               }
-              stats.events[selector].variants[variant]++;
+              stats.events[selector].variants[variantKey].clicks = 
+                (stats.events[selector].variants[variantKey].clicks || 0) + 1;
+              
+              // For multivariate testing - update the variant stats structure
+              if (!stats.variants) stats.variants = {};
+              if (!stats.variants[selector]) stats.variants[selector] = {};
+              if (!stats.variants[selector][variant]) {
+                stats.variants[selector][variant] = {
+                  impressions: 0,
+                  ctaClicks: 0,
+                  conversions: 0,
+                  userTypes: {}
+                };
+              }
+              
+              // Increment CTA clicks for this variant
+              stats.variants[selector][variant].ctaClicks++;
+              
+              // Track by user type within the variant for multivariate testing
+              if (userType) {
+                if (!stats.variants[selector][variant].userTypes[userType]) {
+                  stats.variants[selector][variant].userTypes[userType] = {
+                    impressions: 0,
+                    ctaClicks: 0,
+                    conversions: 0
+                  };
+                }
+                stats.variants[selector][variant].userTypes[userType].ctaClicks++;
+              }
+              
+              // Track by user type if provided
+              if (userType) {
+                if (!stats.events[selector].userTypes[userType]) {
+                  stats.events[selector].userTypes[userType] = { 
+                    clicks: 0, 
+                    variants: {} 
+                  };
+                }
+                stats.events[selector].userTypes[userType].clicks = 
+                  (stats.events[selector].userTypes[userType].clicks || 0) + 1;
+                
+                // Track user type + variant combination
+                if (!stats.events[selector].userTypes[userType].variants[variantKey]) {
+                  stats.events[selector].userTypes[userType].variants[variantKey] = 0;
+                }
+                stats.events[selector].userTypes[userType].variants[variantKey]++;
+                
+                // Also track in the variant's user type stats
+                if (!stats.events[selector].variants[variantKey].userTypes[userType]) {
+                  stats.events[selector].variants[variantKey].userTypes[userType] = 0;
+                }
+                stats.events[selector].variants[variantKey].userTypes[userType]++;
+              }
+            }
+            
+            // Track by user type globally if provided
+            if (userType) {
+              if (!stats.userTypes[userType]) {
+                stats.userTypes[userType] = { impressions: 0, clicks: 0, conversions: 0 };
+              }
+              stats.userTypes[userType].clicks = (stats.userTypes[userType].clicks || 0) + 1;
             }
             
             // Check if we have a statistical winner
@@ -92,8 +205,9 @@ export default async function handler(req, res) {
             if (winner) {
               stats.winner = { 
                 selector, 
-                variant: winner,
-                confidence: 0.95, // Placeholder - actual confidence calculation would be more complex
+                variant: winner.variant,
+                variantName: winner.variantName,
+                confidence: winner.confidence,
                 timestamp: new Date().toISOString()
               };
             }
@@ -104,6 +218,61 @@ export default async function handler(req, res) {
           // Track a conversion event (e.g., form submission, purchase)
           if (!stats.conversions) stats.conversions = 0;
           stats.conversions++;
+          
+          // Track by user type if provided
+          if (userType) {
+            if (!stats.userTypes[userType]) {
+              stats.userTypes[userType] = { impressions: 0, clicks: 0, conversions: 0 };
+            }
+            stats.userTypes[userType].conversions = (stats.userTypes[userType].conversions || 0) + 1;
+          }
+          
+          // Track for specific variant if provided
+          if (selector && variant !== null && variant !== undefined) {
+            const variantKey = variantName || variant;
+            if (!stats.events[selector]) {
+              stats.events[selector] = { clicks: 0, variants: {}, userTypes: {} };
+            }
+            
+            if (!stats.events[selector].variants[variantKey]) {
+              stats.events[selector].variants[variantKey] = {
+                clicks: 0,
+                impressions: 0,
+                conversions: 0,
+                userTypes: {}
+              };
+            }
+            
+            stats.events[selector].variants[variantKey].conversions = 
+              (stats.events[selector].variants[variantKey].conversions || 0) + 1;
+              
+            // For multivariate testing - update the variant stats structure
+            if (!stats.variants) stats.variants = {};
+            if (!stats.variants[selector]) stats.variants[selector] = {};
+            if (!stats.variants[selector][variant]) {
+              stats.variants[selector][variant] = {
+                impressions: 0,
+                ctaClicks: 0,
+                conversions: 0,
+                userTypes: {}
+              };
+            }
+            
+            // Increment conversions for this variant
+            stats.variants[selector][variant].conversions++;
+            
+            // Track by user type within the variant for multivariate testing
+            if (userType) {
+              if (!stats.variants[selector][variant].userTypes[userType]) {
+                stats.variants[selector][variant].userTypes[userType] = {
+                  impressions: 0,
+                  ctaClicks: 0,
+                  conversions: 0
+                };
+              }
+              stats.variants[selector][variant].userTypes[userType].conversions++;
+            }
+          }
           break;
           
         default:
@@ -111,19 +280,6 @@ export default async function handler(req, res) {
           if (!stats.customEvents) stats.customEvents = {};
           if (!stats.customEvents[eventType]) stats.customEvents[eventType] = 0;
           stats.customEvents[eventType]++;
-      }
-      
-      // Track by user type if provided
-      if (userType) {
-        if (!stats.userTypes[userType]) {
-          stats.userTypes[userType] = { impressions: 0, clicks: 0 };
-        }
-        
-        if (eventType === 'impression') {
-          stats.userTypes[userType].impressions = (stats.userTypes[userType].impressions || 0) + 1;
-        } else if (eventType === 'ctaClick') {
-          stats.userTypes[userType].clicks = (stats.userTypes[userType].clicks || 0) + 1;
-        }
       }
       
       // Update timestamp
@@ -152,8 +308,8 @@ export default async function handler(req, res) {
 }
 
 /**
- * Simple algorithm to determine if there's a statistically significant winner
- * Note: In a production system, you'd use a more robust statistical method
+ * More robust algorithm to determine if there's a statistically significant winner
+ * Uses a basic implementation of chi-squared test
  */
 function determineWinner(selectorStats) {
   if (!selectorStats || !selectorStats.variants) return null;
@@ -162,27 +318,73 @@ function determineWinner(selectorStats) {
   const variantNames = Object.keys(variants);
   
   // Need at least two variants and some minimum number of clicks
-  if (variantNames.length < 2 || selectorStats.clicks < 20) return null;
+  if (variantNames.length < 2 || selectorStats.clicks < 30) return null;
   
-  // Find the variant with the most clicks
+  // Get total clicks for each variant
+  const totalClicks = selectorStats.clicks;
+  const expected = totalClicks / variantNames.length; // Expected clicks per variant if no difference
+  
+  // Find variant with best performance
   let bestVariant = null;
   let bestClicks = 0;
+  let bestConversionRate = 0;
   
-  for (const [variant, clicks] of Object.entries(variants)) {
-    if (clicks > bestClicks) {
+  for (const variantName of variantNames) {
+    const variant = variants[variantName];
+    const clicks = variant.clicks || 0;
+    const conversions = variant.conversions || 0;
+    
+    // Calculate conversion rate (if conversion tracking is available)
+    const conversionRate = clicks > 0 ? conversions / clicks : 0;
+    
+    if (clicks > bestClicks || (clicks === bestClicks && conversionRate > bestConversionRate)) {
+      bestVariant = variantName;
       bestClicks = clicks;
-      bestVariant = variant;
+      bestConversionRate = conversionRate;
     }
   }
   
-  // Simple heuristic: if the best variant has at least 60% of the clicks 
-  // and at least 10 clicks total, consider it a winner
-  const totalClicks = Object.values(variants).reduce((sum, clicks) => sum + clicks, 0);
-  const winnerRatio = bestClicks / totalClicks;
+  // Calculate chi-squared statistic
+  let chiSquared = 0;
+  for (const variantName of variantNames) {
+    const observed = variants[variantName].clicks || 0;
+    const difference = observed - expected;
+    chiSquared += (difference * difference) / expected;
+  }
   
-  if (winnerRatio >= 0.6 && bestClicks >= 10) {
-    return bestVariant;
+  // For 95% confidence with N-1 degrees of freedom (where N is number of variants)
+  // Simple approximation of chi-squared critical values
+  const degreesOfFreedom = variantNames.length - 1;
+  const criticalValue = getCriticalValue(degreesOfFreedom);
+  
+  const isSignificant = chiSquared > criticalValue;
+  const confidence = isSignificant ? 0.95 : (chiSquared / criticalValue) * 0.95;
+  
+  // Only return a winner if it's statistically significant and has enough data
+  if (isSignificant && bestClicks >= 15 && bestClicks / totalClicks > 0.55) {
+    return {
+      variant: bestVariant,
+      variantName: bestVariant,
+      confidence,
+      chiSquared,
+      totalSample: totalClicks
+    };
   }
   
   return null;
+}
+
+/**
+ * Get the chi-squared critical value for 95% confidence
+ */
+function getCriticalValue(degreesOfFreedom) {
+  // Simplified critical values for common degrees of freedom
+  const criticalValues = {
+    1: 3.84,  // For 2 variants
+    2: 5.99,  // For 3 variants
+    3: 7.81,  // For 4 variants
+    4: 9.49   // For 5 variants
+  };
+  
+  return criticalValues[degreesOfFreedom] || 3.84; // Default to 1 degree of freedom
 } 

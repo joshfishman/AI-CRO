@@ -38,6 +38,38 @@ export default async function handler(req, res) {
       workspaceId: workspaceId || 'default'
     });
     
+    // Validate selectors for multivariate testing format
+    const validatedSelectors = selectors.map(selector => {
+      // Ensure all selectors have the required fields
+      const validSelector = {
+        selector: selector.selector,
+        contentType: selector.contentType || 'text',
+        prompt: selector.prompt || '',
+        default: selector.default || '',
+        variants: []
+      };
+
+      // Ensure each variant has required fields
+      if (Array.isArray(selector.variants)) {
+        validSelector.variants = selector.variants.map(variant => ({
+          content: variant.content || '',
+          userType: variant.userType || 'all',
+          isDefault: !!variant.isDefault,
+          name: variant.name || 'Variant'
+        }));
+      } else {
+        // If no variants, create one default variant
+        validSelector.variants = [{
+          content: selector.default || '',
+          userType: 'all',
+          isDefault: true,
+          name: 'Default'
+        }];
+      }
+
+      return validSelector;
+    });
+    
     // Create Edge Config client
     const client = createClient(process.env.EDGE_CONFIG);
     if (!client) {
@@ -50,13 +82,31 @@ export default async function handler(req, res) {
     // Store in Edge Config
     await client.set(configKey, { 
       url, 
-      selectors,
-      lastUpdated: new Date().toISOString() 
+      selectors: validatedSelectors,
+      lastUpdated: new Date().toISOString(),
+      version: 2 // Add a version to track schema updates
     });
+    
+    // Reset stats for this page to start fresh with the new test
+    const statsKey = workspaceId ? `stats:${workspaceId}:${url}` : `stats:${url}`;
+    try {
+      await client.set(statsKey, {
+        impressions: 0,
+        events: {},
+        userTypes: {},
+        variants: {},
+        lastUpdated: new Date().toISOString(),
+        version: 2
+      });
+    } catch (statsError) {
+      console.warn('Failed to reset stats:', statsError);
+      // Non-critical error, continue
+    }
     
     return res.status(200).json({ 
       saved: true,
-      key: configKey
+      key: configKey,
+      version: 2
     });
   } catch (error) {
     console.error('Error saving configuration:', error);

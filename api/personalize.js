@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
   
   try {
-    const { selectors, userType, pageUrl, workspaceId } = req.body;
+    const { selectors, userType, pageUrl, workspaceId, generateVariants, variantCount } = req.body;
     
     if (!selectors || !Array.isArray(selectors) || selectors.length === 0) {
       return res.status(400).json({ error: 'Invalid selectors provided' });
@@ -28,7 +28,9 @@ export default async function handler(req, res) {
       userType, 
       pageUrl, 
       workspaceId, 
-      selectors: selectors.length 
+      selectors: selectors.length,
+      generateVariants,
+      variantCount
     });
     
     // Get OpenAI API key from environment variables
@@ -42,34 +44,94 @@ export default async function handler(req, res) {
     const openai = new OpenAI({
       apiKey: openaiApiKey
     });
+
+    // Check if we need to generate multiple variants
+    if (generateVariants && selectors.length === 1) {
+      // Generate multiple variants for multivariate testing
+      try {
+        const selector = selectors[0];
+        const variants = await generateVariantOptions(
+          openai,
+          selector.prompt,
+          selector.default,
+          variantCount || 3
+        );
+        
+        return res.status(200).json({
+          variants,
+          selector: selector.selector,
+          userType,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error generating variants:', error);
+        return res.status(500).json({ error: 'Failed to generate variants' });
+      }
+    }
     
-    // Process each selector and generate personalized content
+    // Process each selector and generate personalized content based on user type
     const results = await Promise.all(
       selectors.map(async (selector) => {
         try {
-          return {
-            selector: selector.selector,
-            result: await generatePersonalizedContent(
+          // New format might have variants already defined
+          if (selector.variants && Array.isArray(selector.variants) && selector.variants.length > 0) {
+            // Find the appropriate variant for this user type
+            const matchingVariants = selector.variants.filter(variant => 
+              variant.userType === userType || variant.userType === 'all'
+            );
+            
+            // Prioritize exact user type match, then 'all', then default
+            const userTypeVariant = matchingVariants.find(v => v.userType === userType);
+            const allUsersVariant = matchingVariants.find(v => v.userType === 'all');
+            const noUserTypeVariant = selector.variants.find(v => v.userType === 'none' || v.userType === '');
+            const defaultVariant = selector.variants.find(v => v.isDefault) || selector.variants[0];
+            
+            // Use the appropriate variant
+            const variantToUse = userTypeVariant || allUsersVariant || (userType === 'unknown' ? noUserTypeVariant : null) || defaultVariant;
+            
+            return {
+              selector: selector.selector,
+              contentType: selector.contentType || 'text',
+              result: variantToUse.content,
+              variant: selector.variants.indexOf(variantToUse),
+              variantName: variantToUse.name || 'Variant',
+              default: selector.default || variantToUse.content,
+              isDefault: variantToUse.isDefault || false
+            };
+          } else {
+            // Legacy format - generate content using OpenAI
+            const generatedContent = await generatePersonalizedContent(
               openai, 
               selector.prompt, 
               userType, 
               pageUrl
-            ),
-            default: selector.default
-          };
+            );
+            
+            return {
+              selector: selector.selector,
+              contentType: selector.contentType || 'text',
+              result: generatedContent,
+              default: selector.default,
+              isDefault: false,
+              variantName: 'AI Generated'
+            };
+          }
         } catch (error) {
           console.error(`Error generating content for selector ${selector.selector}:`, error);
           return {
             selector: selector.selector,
+            contentType: selector.contentType || 'text',
             error: 'Failed to generate content',
             default: selector.default,
-            result: selector.default // Fallback to default
+            result: selector.default, // Fallback to default
+            isDefault: true,
+            variantName: 'Default (Error)'
           };
         }
       })
     );
     
-    // If a specific workspaceId is provided, we log this personalization attempt
+    // If a specific workspaceId is provided, log this personalization attempt
     if (workspaceId && pageUrl) {
       try {
         const edgeConfig = createClient(process.env.EDGE_CONFIG);
@@ -90,7 +152,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       results,
       userType,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      version: 2
     });
   } catch (error) {
     console.error('Error in personalize:', error);
@@ -134,6 +197,52 @@ Do not include explanations or additional notes - just return the personalized c
     return generatedContent;
   } catch (error) {
     console.error('OpenAI API error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate multiple variants for multivariate testing
+ */
+async function generateVariantOptions(openai, prompt, originalContent, count = 3) {
+  try {
+    const variantPrompt = `
+You are a conversion optimization AI helping to generate multiple variants for A/B testing.
+
+ORIGINAL CONTENT: "${originalContent || 'No original content provided'}"
+
+TASK: ${prompt}
+
+Generate ${count} distinct variants for A/B testing.
+Each variant should be tailored for the task while providing different approaches/wording/styles.
+Return ONLY the variants, one per line, without any numbering, explanation, or additional text.
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant that generates multiple variations of content for A/B testing." },
+        { role: "user", content: variantPrompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 1000,
+      top_p: 1,
+      frequency_penalty: 0.5,
+      presence_penalty: 0.5
+    });
+    
+    const variantText = response.choices[0].message.content.trim();
+    
+    // Split by newlines and clean up
+    const variants = variantText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .slice(0, count); // Ensure we only return the requested number
+    
+    return variants;
+  } catch (error) {
+    console.error('OpenAI API error generating variants:', error);
     throw error;
   }
 }

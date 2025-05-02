@@ -18,7 +18,8 @@
     apiBase: null,
     workspaceId: null,
     pageUrl: window.location.pathname,
-    startTime: Date.now()
+    startTime: Date.now(),
+    appliedVariants: {} // Track which variants were applied for each selector
   };
 
   // Initialize the personalization
@@ -72,6 +73,14 @@
   // Get the user type from the API
   async function getUserType() {
     try {
+      // Check URL parameters first for testing purposes
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('user_type')) {
+        const paramUserType = urlParams.get('user_type');
+        console.log(`Cursor AI-CRO: User type from URL parameter: ${paramUserType}`);
+        return paramUserType;
+      }
+      
       // Try to get the user type based on various identifiers
       const email = getEmailFromPage() || getEmailFromCookie();
       const ipAddress = await getClientIP();
@@ -191,32 +200,12 @@
     state.processing = true;
     
     try {
-      // Request personalized content from the API
-      const response = await fetch(`${state.apiBase}/api/personalize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          selectors: state.config.selectors,
-          userType: state.userType,
-          pageUrl: state.pageUrl,
-          workspaceId: state.workspaceId
-        })
-      });
+      // For multivariate testing, we'll select the variants to show first
+      // rather than calling the API for every element
+      const selectedVariants = selectVariantsForUserType(state.config.selectors, state.userType);
       
-      if (!response.ok) {
-        throw new Error(`Personalization request failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.results || !Array.isArray(data.results)) {
-        throw new Error('Invalid response format from personalization API');
-      }
-      
-      // Apply the personalized content to the page
-      applyPersonalizedContent(data.results);
+      // Apply the selected variants directly
+      applySelectedVariants(selectedVariants);
       
       // Mark as applied
       state.applied = true;
@@ -235,7 +224,7 @@
       window.dispatchEvent(new CustomEvent('personalizationLoaded', {
         detail: {
           userType: state.userType,
-          selectors: data.results.map(r => r.selector)
+          selectors: Object.keys(selectedVariants)
         }
       }));
     } catch (error) {
@@ -245,14 +234,53 @@
       document.body.classList.add('personalized-error');
     }
   }
+
+  // Select the appropriate variants for the user type
+  function selectVariantsForUserType(selectors, userType) {
+    const selectedVariants = {};
+    
+    selectors.forEach(selectorConfig => {
+      const { selector, variants, contentType, default: defaultContent } = selectorConfig;
+      
+      // Find variants that match this user type, or the 'all' user type
+      const matchingVariants = variants.filter(variant => 
+        variant.userType === userType || variant.userType === 'all'
+      );
+      
+      // If there's a variant specifically for this user type, prioritize it
+      const userTypeVariant = matchingVariants.find(v => v.userType === userType);
+      const allUsersVariant = matchingVariants.find(v => v.userType === 'all');
+      
+      // Find the default variant
+      const defaultVariant = variants.find(v => v.isDefault);
+      
+      // The variant to use (in order of priority)
+      const variantToUse = userTypeVariant || allUsersVariant || defaultVariant || variants[0];
+      
+      // Record the applied variant in state
+      selectedVariants[selector] = {
+        content: variantToUse.content,
+        contentType: contentType || 'text',
+        variantName: variantToUse.name || 'Variant',
+        variantId: variants.indexOf(variantToUse),
+        isDefault: variantToUse.isDefault || false,
+        userType: variantToUse.userType || 'all'
+      };
+    });
+    
+    return selectedVariants;
+  }
   
-  // Apply the personalized content to DOM elements
-  function applyPersonalizedContent(results) {
-    results.forEach(result => {
+  // Apply the selected variants to the page
+  function applySelectedVariants(selectedVariants) {
+    // Get all selectors
+    const selectors = Object.keys(selectedVariants);
+    
+    selectors.forEach(selector => {
       try {
-        const { selector, result: content, default: defaultContent } = result;
+        const { content, contentType, variantName, variantId, isDefault } = selectedVariants[selector];
         
-        // Find the element(s) matching the selector
+        // Find elements matching the selector
         const elements = document.querySelectorAll(selector);
         
         if (elements.length === 0) {
@@ -260,36 +288,81 @@
           return;
         }
         
-        // Apply to each matching element
+        // Apply content to each matching element
         elements.forEach(element => {
           // Add tracking class
           element.classList.add('personalize-target');
           element.setAttribute('data-cursor-personalized', 'true');
-          
-          // If the result has an error or no content, use the default
-          const finalContent = (content && !result.error) ? content : defaultContent;
+          element.setAttribute('data-cursor-variant-id', variantId);
+          element.setAttribute('data-cursor-variant-name', variantName);
+          element.setAttribute('data-cursor-content-type', contentType);
           
           // Store original content for reference
           if (!element.hasAttribute('data-cursor-original')) {
-            element.setAttribute('data-cursor-original', element.innerHTML.trim());
+            if (contentType === 'image') {
+              element.setAttribute('data-cursor-original', element.src || '');
+            } else if (contentType === 'link') {
+              element.setAttribute('data-cursor-original', element.href || '');
+            } else if (contentType === 'bg-image') {
+              const style = window.getComputedStyle(element);
+              element.setAttribute('data-cursor-original', style.backgroundImage || '');
+            } else {
+              element.setAttribute('data-cursor-original', element.innerHTML.trim());
+            }
           }
           
-          // Apply the content based on element type
-          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-            element.value = finalContent;
-          } else if (element.tagName === 'IMG') {
-            element.src = finalContent;
-          } else {
-            element.innerHTML = finalContent;
-          }
+          // Apply the content based on content type
+          applyContentToElement(element, content, contentType);
           
-          // Store the variant for tracking
-          element.setAttribute('data-cursor-variant', finalContent === defaultContent ? 'default' : 'personalized');
+          // Store the variant info for tracking
+          element.setAttribute('data-cursor-variant', isDefault ? 'default' : variantName);
+          
+          // Record in state.appliedVariants
+          state.appliedVariants[selector] = {
+            variantId,
+            variantName,
+            isDefault,
+            contentType
+          };
         });
       } catch (error) {
-        console.error(`Cursor AI-CRO: Error applying content for selector ${result.selector}:`, error);
+        console.error(`Cursor AI-CRO: Error applying content for selector ${selector}:`, error);
       }
     });
+  }
+  
+  // Apply content to element based on content type
+  function applyContentToElement(element, content, contentType) {
+    switch (contentType) {
+      case 'image':
+        if (element.tagName === 'IMG') {
+          element.src = content;
+        } else {
+          console.warn('Cursor AI-CRO: Cannot apply image content to non-image element');
+        }
+        break;
+        
+      case 'bg-image':
+        element.style.backgroundImage = `url('${content}')`;
+        break;
+        
+      case 'link':
+        if (element.tagName === 'A') {
+          element.href = content;
+        } else {
+          console.warn('Cursor AI-CRO: Cannot apply link content to non-anchor element');
+        }
+        break;
+        
+      case 'text':
+      default:
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+          element.value = content;
+        } else {
+          element.innerHTML = content;
+        }
+        break;
+    }
   }
   
   // Set up event tracking (clicks, form submissions)
@@ -304,9 +377,10 @@
       while (target && depth < maxDepth) {
         if (target.hasAttribute && target.hasAttribute('data-cursor-personalized')) {
           const selector = findSelectorForElement(target);
-          const variant = target.getAttribute('data-cursor-variant');
+          const variantName = target.getAttribute('data-cursor-variant-name');
+          const variantId = target.getAttribute('data-cursor-variant-id');
           
-          recordEvent('ctaClick', selector, variant);
+          recordEvent('ctaClick', selector, variantId, variantName);
           break;
         }
         target = target.parentElement;
@@ -316,8 +390,20 @@
     
     // Track form submissions
     document.addEventListener('submit', event => {
+      // Find the selector that was clicked if any
+      const target = event.target;
+      
       // Record conversion event
-      recordEvent('conversion', null, null);
+      // If a button was recently clicked, include that in the conversion tracking
+      const lastClickedSelector = state.lastClickedSelector;
+      const lastClickedVariant = state.lastClickedVariant;
+      const lastClickedVariantName = state.lastClickedVariantName;
+      
+      if (lastClickedSelector && lastClickedVariant) {
+        recordEvent('conversion', lastClickedSelector, lastClickedVariant, lastClickedVariantName);
+      } else {
+        recordEvent('conversion', null, null, null);
+      }
     });
   }
   
@@ -344,8 +430,15 @@
   }
   
   // Record an event to the stats API
-  async function recordEvent(eventType, selector, variant) {
+  async function recordEvent(eventType, selector, variant, variantName) {
     try {
+      // Store the last clicked selector and variant for conversion tracking
+      if (eventType === 'ctaClick' && selector) {
+        state.lastClickedSelector = selector;
+        state.lastClickedVariant = variant;
+        state.lastClickedVariantName = variantName;
+      }
+      
       await fetch(`${state.apiBase}/api/record-event`, {
         method: 'POST',
         headers: {
@@ -358,6 +451,7 @@
           userType: state.userType,
           selector,
           variant,
+          variantName,
           timestamp: new Date().toISOString()
         })
       });
@@ -368,6 +462,7 @@
           event: `cursor_${eventType}`,
           cursor_selector: selector,
           cursor_variant: variant,
+          cursor_variant_name: variantName,
           cursor_user_type: state.userType
         });
       }
@@ -382,4 +477,265 @@
   } else {
     initialize();
   }
+  
+  // Check if the user is a site owner and should see test results
+  function checkShowTestResults() {
+    // Check URL parameter or localStorage preference
+    const urlParams = new URLSearchParams(window.location.search);
+    const showResults = urlParams.has('show_cursor_results') || localStorage.getItem('cursor_show_results') === 'true';
+    
+    if (showResults) {
+      // Store preference in localStorage
+      localStorage.setItem('cursor_show_results', 'true');
+      // Load and display test results
+      loadTestResults();
+    }
+  }
+  
+  // Load test results from the API
+  async function loadTestResults() {
+    try {
+      const resultsUrl = `${state.apiBase}/api/get-test-results?path=${encodeURIComponent(state.pageUrl)}&workspace=${encodeURIComponent(state.workspaceId)}`;
+      const response = await fetch(resultsUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get test results: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      showTestResultsDashboard(data);
+    } catch (error) {
+      console.error('Cursor AI-CRO: Error loading test results', error);
+    }
+  }
+  
+  // Create and show test results dashboard
+  function showTestResultsDashboard(data) {
+    // Create dashboard element
+    const dashboard = document.createElement('div');
+    dashboard.id = 'cursor-results-dashboard';
+    dashboard.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 320px;
+      max-height: 70vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 999999;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      transition: all 0.3s ease;
+    `;
+    
+    // Dashboard header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      background: #4f46e5;
+      color: white;
+      padding: 12px 16px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    `;
+    header.innerHTML = `
+      <div>
+        <span style="font-size: 14px;">Cursor AI CRO Results</span>
+        <span style="font-size: 11px; opacity: 0.8; display: block; margin-top: 2px;">${state.pageUrl}</span>
+      </div>
+      <div>
+        <button id="cursor-dashboard-close" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
+      </div>
+    `;
+    dashboard.appendChild(header);
+    
+    // Dashboard content
+    const content = document.createElement('div');
+    content.style.cssText = `
+      padding: 16px;
+      overflow-y: auto;
+      max-height: calc(70vh - 58px);
+    `;
+    
+    // Overall stats
+    content.innerHTML = `
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee;">
+        <div style="font-size: 13px; margin-bottom: 8px; color: #555;">Overall Statistics</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;">
+          <div>
+            <div style="font-size: 18px; font-weight: bold;">${data.totalImpressions || 0}</div>
+            <div style="font-size: 11px; color: #777;">Impressions</div>
+          </div>
+          <div>
+            <div style="font-size: 18px; font-weight: bold;">${data.totalCtaClicks || 0}</div>
+            <div style="font-size: 11px; color: #777;">Clicks</div>
+          </div>
+          <div>
+            <div style="font-size: 18px; font-weight: bold;">${
+              data.totalImpressions > 0 
+                ? ((data.totalCtaClicks / data.totalImpressions) * 100).toFixed(1) + '%' 
+                : '0%'
+            }</div>
+            <div style="font-size: 11px; color: #777;">CTR</div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // For each selector, show results
+    const results = data.results || {};
+    Object.keys(results).forEach(selector => {
+      const selectorData = results[selector];
+      if (!selectorData.variants || selectorData.variants.length === 0) return;
+      
+      const selectorElement = document.createElement('div');
+      selectorElement.style.cssText = `
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+      `;
+      
+      let selectorHtml = `
+        <div style="margin-bottom: 8px;">
+          <div style="font-size: 13px; font-weight: bold; margin-bottom: 4px; word-break: break-all;">${selector}</div>
+          <div style="font-size: 11px; color: #777;">
+            Content type: ${selectorData.contentType || 'text'}
+            ${selectorData.confidence > 0 
+              ? `<span style="margin-left: 8px; background: ${
+                  selectorData.confidence > 95 ? '#4ade80' : selectorData.confidence > 85 ? '#facc15' : '#d1d5db'
+                }; color: ${
+                  selectorData.confidence > 95 ? '#064e3b' : selectorData.confidence > 85 ? '#78350f' : '#1f2937'
+                }; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                  ${selectorData.confidence}% confidence
+                </span>`
+              : ''
+            }
+          </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="text-align: left; border-bottom: 1px solid #eee;">
+              <th style="padding: 4px 8px 8px 0;">Variant</th>
+              <th style="padding: 4px 8px 8px 0; text-align: center;">User</th>
+              <th style="padding: 4px 8px 8px 0; text-align: center;">Views</th>
+              <th style="padding: 4px 8px 8px 0; text-align: center;">Clicks</th>
+              <th style="padding: 4px 8px 8px 0; text-align: center;">CTR</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // Add rows for each variant
+      selectorData.variants.forEach(variant => {
+        const isWinner = variant.variantId === selectorData.winner;
+        selectorHtml += `
+          <tr style="${isWinner ? 'background: rgba(79, 70, 229, 0.05);' : ''}">
+            <td style="padding: 8px 8px 8px 0; display: flex; align-items: center;">
+              ${isWinner 
+                ? '<span style="color: #4f46e5; margin-right: 4px;">★</span>' 
+                : '<span style="opacity: 0; margin-right: 4px;">○</span>'
+              }
+              <span style="${variant.isDefault ? 'font-style: italic;' : ''} ${isWinner ? 'font-weight: bold;' : ''}">
+                ${variant.name}
+                ${variant.isDefault ? ' (default)' : ''}
+              </span>
+            </td>
+            <td style="padding: 8px 8px 8px 0; text-align: center;">
+              <span style="
+                background: ${
+                  variant.userType === 'all' ? '#e0e7ff' : 
+                  variant.userType === 'none' || variant.userType === '' ? '#f3f4f6' : 
+                  '#d1fae5'
+                };
+                color: ${
+                  variant.userType === 'all' ? '#3730a3' : 
+                  variant.userType === 'none' || variant.userType === '' ? '#4b5563' : 
+                  '#065f46'
+                };
+                padding: 2px 4px;
+                border-radius: 4px;
+                font-size: 10px;
+              ">
+                ${variant.userType === 'all' ? 'All' : 
+                  variant.userType === 'none' || variant.userType === '' ? 'None' : 
+                  variant.userType}
+              </span>
+            </td>
+            <td style="padding: 8px 8px 8px 0; text-align: center;">${variant.impressions}</td>
+            <td style="padding: 8px 8px 8px 0; text-align: center;">${variant.ctaClicks}</td>
+            <td style="padding: 8px 8px 8px 0; text-align: center; ${isWinner ? 'font-weight: bold; color: #4f46e5;' : ''}">
+              ${variant.ctr}%
+              ${variant.improvement > 0 && !variant.isDefault 
+                ? `<span style="display: block; color: #16a34a; font-size: 10px;">+${variant.improvement.toFixed(1)}%</span>` 
+                : variant.improvement < 0 && !variant.isDefault
+                ? `<span style="display: block; color: #dc2626; font-size: 10px;">${variant.improvement.toFixed(1)}%</span>`
+                : ''
+              }
+            </td>
+          </tr>
+        `;
+      });
+      
+      selectorHtml += `
+          </tbody>
+        </table>
+      `;
+      
+      selectorElement.innerHTML = selectorHtml;
+      content.appendChild(selectorElement);
+    });
+    
+    // No results message
+    if (Object.keys(results).length === 0) {
+      content.innerHTML += `
+        <div style="text-align: center; padding: 20px 0; color: #777; font-size: 13px;">
+          No test results available yet.
+        </div>
+      `;
+    }
+    
+    dashboard.appendChild(content);
+    
+    // Add close button handler
+    dashboard.addEventListener('click', (e) => {
+      if (e.target.id === 'cursor-dashboard-close') {
+        dashboard.remove();
+        localStorage.removeItem('cursor_show_results');
+      }
+    });
+    
+    // Make dashboard draggable
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    header.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      offsetX = e.clientX - dashboard.getBoundingClientRect().left;
+      offsetY = e.clientY - dashboard.getBoundingClientRect().top;
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const left = e.clientX - offsetX;
+      const top = e.clientY - offsetY;
+      
+      dashboard.style.left = Math.max(0, left) + 'px';
+      dashboard.style.bottom = 'auto';
+      dashboard.style.top = Math.max(0, top) + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    
+    // Add to document
+    document.body.appendChild(dashboard);
+  }
+  
+  // Initialize results check with a delay
+  setTimeout(checkShowTestResults, 2000);
 })();
