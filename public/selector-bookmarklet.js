@@ -21,6 +21,10 @@
   
   window.__cursorSelectorActive = true;
   
+  // Get workspace from URL or use default
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentWorkspace = urlParams.get('workspace') || 'default';
+  
   // Available user types for targeting
   const USER_TYPES = [
     { id: 'all', name: 'All Users' },
@@ -74,6 +78,40 @@
       <p style="margin: 0 0 15px; font-size: 14px;">Click on elements to select them for personalization. Add up to 4 variants for multivariate testing.</p>
     `;
     
+    // Add workspace selection
+    const workspaceSection = document.createElement('div');
+    workspaceSection.style.cssText = `
+      margin-bottom: 15px;
+      padding: 12px;
+      background: #f5f8ff;
+      border-radius: 6px;
+      border: 1px solid #e0e7ff;
+    `;
+    
+    workspaceSection.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label style="font-weight: bold; font-size: 14px;">Workspace:</label>
+        <div style="display: flex; align-items: center;">
+          <input 
+            id="cursor-workspace-input" 
+            type="text" 
+            value="${currentWorkspace}" 
+            placeholder="Enter workspace ID" 
+            style="padding: 6px; border-radius: 4px; border: 1px solid #ddd; width: 150px; margin-right: 8px; font-size: 13px;"
+          />
+          <button 
+            id="cursor-workspace-save" 
+            style="background: #4f46e5; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: #666;">
+        Workspaces let you organize tests across different environments, teams, or projects.
+      </div>
+    `;
+    
     // Create selected elements list
     const selectedList = document.createElement('div');
     selectedList.id = 'cursor-selector-list';
@@ -94,6 +132,7 @@
     
     // Assemble UI components
     container.appendChild(header);
+    container.appendChild(workspaceSection);
     container.appendChild(selectedList);
     container.appendChild(actions);
     document.body.appendChild(container);
@@ -102,6 +141,29 @@
     document.getElementById('cursor-selector-close').addEventListener('click', cleanupSelectorTool);
     document.getElementById('cursor-selector-cancel').addEventListener('click', cleanupSelectorTool);
     document.getElementById('cursor-selector-save').addEventListener('click', saveConfiguration);
+    
+    // Add event listener for workspace
+    document.getElementById('cursor-workspace-save').addEventListener('click', updateWorkspace);
+  };
+  
+  // Update the workspace
+  const updateWorkspace = () => {
+    const workspaceInput = document.getElementById('cursor-workspace-input');
+    const newWorkspace = workspaceInput.value.trim();
+    
+    if (!newWorkspace) {
+      alert('Please enter a valid workspace ID');
+      return;
+    }
+    
+    currentWorkspace = newWorkspace;
+    
+    // Update URL parameter without refreshing
+    const url = new URL(window.location.href);
+    url.searchParams.set('workspace', currentWorkspace);
+    window.history.replaceState({}, '', url);
+    
+    alert(`Workspace updated to "${currentWorkspace}"`);
   };
   
   // Global state to track selected elements
@@ -931,6 +993,11 @@
         };
       });
       
+      // Show saving indicator
+      const saveBtn = document.getElementById('cursor-selector-save');
+      saveBtn.textContent = 'Saving...';
+      saveBtn.disabled = true;
+      
       // Save to API
       const response = await fetch(`${apiBase}/api/save-config`, {
         method: 'POST',
@@ -941,7 +1008,7 @@
         body: JSON.stringify({
           url: window.location.pathname,
           selectors,
-          workspaceId: 'default' // TODO: Allow customizing the workspace
+          workspaceId: currentWorkspace
         })
       });
       
@@ -951,11 +1018,18 @@
       
       const data = await response.json();
       
-      alert('Configuration saved successfully!');
+      alert(`Configuration saved successfully to workspace "${currentWorkspace}"!`);
       cleanupSelectorTool();
     } catch (error) {
       console.error('Error saving configuration:', error);
       alert(`Failed to save configuration: ${error.message}`);
+      
+      // Reset save button
+      const saveBtn = document.getElementById('cursor-selector-save');
+      if (saveBtn) {
+        saveBtn.textContent = 'Save Config';
+        saveBtn.disabled = false;
+      }
     }
   };
   

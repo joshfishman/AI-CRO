@@ -31,12 +31,39 @@ export default async function handler(req, res) {
       });
     }
     
+    // Use default workspace if none provided
+    const targetWorkspace = workspaceId || 'default';
+    
     // Log the save request
     console.log('Saving config:', { 
       url, 
       selectors: selectors.length,
-      workspaceId: workspaceId || 'default'
+      workspaceId: targetWorkspace
     });
+    
+    // Create Edge Config client
+    const client = createClient(process.env.EDGE_CONFIG);
+    if (!client) {
+      return res.status(500).json({ error: 'Edge Config not available' });
+    }
+    
+    // Update the list of workspaces
+    if (targetWorkspace !== 'default') {
+      try {
+        const workspacesKey = 'workspaces';
+        const existingWorkspaces = await client.get(workspacesKey) || [];
+        
+        // Add the workspace if it doesn't exist
+        if (!existingWorkspaces.includes(targetWorkspace)) {
+          existingWorkspaces.push(targetWorkspace);
+          await client.set(workspacesKey, existingWorkspaces);
+          console.log(`Added new workspace: ${targetWorkspace}`);
+        }
+      } catch (workspaceError) {
+        console.warn('Failed to update workspaces list:', workspaceError);
+        // Non-critical error, continue with the save
+      }
+    }
     
     // Validate selectors for multivariate testing format
     const validatedSelectors = selectors.map(selector => {
@@ -70,31 +97,27 @@ export default async function handler(req, res) {
       return validSelector;
     });
     
-    // Create Edge Config client
-    const client = createClient(process.env.EDGE_CONFIG);
-    if (!client) {
-      return res.status(500).json({ error: 'Edge Config not available' });
-    }
-    
-    // Construct the key with optional workspace ID
-    const configKey = workspaceId ? `page:${workspaceId}:${url}` : `page:${url}`;
+    // Construct the key with workspace ID
+    const configKey = `page:${targetWorkspace}:${url}`;
     
     // Store in Edge Config
     await client.set(configKey, { 
       url, 
       selectors: validatedSelectors,
+      workspaceId: targetWorkspace,
       lastUpdated: new Date().toISOString(),
       version: 2 // Add a version to track schema updates
     });
     
     // Reset stats for this page to start fresh with the new test
-    const statsKey = workspaceId ? `stats:${workspaceId}:${url}` : `stats:${url}`;
+    const statsKey = `stats:${targetWorkspace}:${url}`;
     try {
       await client.set(statsKey, {
         impressions: 0,
         events: {},
         userTypes: {},
         variants: {},
+        workspaceId: targetWorkspace,
         lastUpdated: new Date().toISOString(),
         version: 2
       });
@@ -106,6 +129,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       saved: true,
       key: configKey,
+      workspaceId: targetWorkspace,
       version: 2
     });
   } catch (error) {

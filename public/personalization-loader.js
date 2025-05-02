@@ -49,8 +49,11 @@
     const srcUrl = new URL(scriptSrc);
     state.apiBase = `${srcUrl.protocol}//${srcUrl.host}`;
     
-    // Get workspace ID from data attribute
-    state.workspaceId = scriptTag.getAttribute('data-cursor-workspace') || 'default';
+    // Get workspace ID from data attribute or URL
+    const urlParams = new URLSearchParams(window.location.search);
+    state.workspaceId = scriptTag.getAttribute('data-cursor-workspace') || 
+                       urlParams.get('workspace') || 
+                       'default';
     
     // Add personalized-loading class to body
     document.body.classList.add('personalized-loading');
@@ -221,14 +224,15 @@
       const cacheData = {
         config: config,
         timestamp: Date.now(),
-        userType: state.userType
+        userType: state.userType,
+        workspaceId: state.workspaceId
       };
       
       const cacheKey = `cursor_config_${state.workspaceId}_${state.pageUrl}`;
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
       state.lastCacheUpdate = cacheData.timestamp;
       
-      console.log(`Cursor AI-CRO: Saved configuration to cache`);
+      console.log(`Cursor AI-CRO: Saved configuration to cache for workspace ${state.workspaceId}`);
     } catch (e) {
       console.warn('Cursor AI-CRO: Failed to cache config in localStorage', e);
     }
@@ -631,7 +635,12 @@
     header.innerHTML = `
       <div style="flex: 1;">
         <span style="font-size: 14px;">Cursor AI CRO Results</span>
-        <span style="font-size: 11px; opacity: 0.8; display: block; margin-top: 2px;">${state.pageUrl}</span>
+        <div style="display: flex; align-items: center; margin-top: 2px;">
+          <span style="font-size: 11px; opacity: 0.8;">${state.pageUrl}</span>
+          <span style="font-size: 10px; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px; margin-left: 6px;">
+            ${state.workspaceId}
+          </span>
+        </div>
       </div>
       <div style="display: flex; align-items: center;">
         <span style="font-size: 10px; opacity: 0.7; margin-right: 10px;">Ctrl+Shift+D</span>
@@ -658,8 +667,41 @@
       max-height: calc(70vh - 58px);
     `;
     
+    // Add workspace selector
+    const workspaceSelector = document.createElement('div');
+    workspaceSelector.style.cssText = `
+      margin-bottom: 16px;
+      padding: 10px;
+      background: #f5f8ff;
+      border-radius: 6px;
+      border: 1px solid #e0e7ff;
+    `;
+    
+    workspaceSelector.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label style="font-weight: bold; font-size: 12px;">Workspace:</label>
+        <div style="display: flex; align-items: center;">
+          <input 
+            id="cursor-dash-workspace" 
+            type="text" 
+            value="${state.workspaceId}" 
+            placeholder="Enter workspace ID" 
+            style="padding: 4px; border-radius: 4px; border: 1px solid #ddd; width: 120px; margin-right: 6px; font-size: 12px;"
+          />
+          <button 
+            id="cursor-dash-workspace-switch" 
+            style="background: #4f46e5; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;"
+          >
+            Switch
+          </button>
+        </div>
+      </div>
+    `;
+    
+    content.appendChild(workspaceSelector);
+    
     // Overall stats
-    content.innerHTML = `
+    content.innerHTML += `
       <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee;">
         <div style="font-size: 13px; margin-bottom: 8px; color: #555;">Overall Statistics</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;">
@@ -797,6 +839,25 @@
     
     dashboard.appendChild(content);
     
+    // Add event listeners for the workspace switcher
+    const dashboardWorkspaceInput = document.getElementById('cursor-dash-workspace');
+    const dashboardWorkspaceSwitch = document.getElementById('cursor-dash-workspace-switch');
+    
+    if (dashboardWorkspaceSwitch) {
+      dashboardWorkspaceSwitch.addEventListener('click', () => {
+        const newWorkspace = dashboardWorkspaceInput.value.trim();
+        if (newWorkspace && newWorkspace !== state.workspaceId) {
+          // Update URL with new workspace
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('workspace', newWorkspace);
+          currentUrl.searchParams.set('show_cursor_results', 'true');
+          
+          // Redirect to the new workspace
+          window.location.href = currentUrl.toString();
+        }
+      });
+    }
+    
     // Add close button handler
     dashboard.addEventListener('click', (e) => {
       if (e.target.id === 'cursor-dashboard-close') {
@@ -805,6 +866,7 @@
       } else if (e.target.id === 'cursor-dashboard-share') {
         const currentUrl = new URL(window.location.href);
         currentUrl.searchParams.set('show_cursor_results', 'true');
+        currentUrl.searchParams.set('workspace', state.workspaceId);
         navigator.clipboard.writeText(currentUrl.toString()).then(() => {
           e.target.textContent = 'Copied!';
           setTimeout(() => {

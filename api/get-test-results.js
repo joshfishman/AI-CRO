@@ -25,6 +25,8 @@ export default async function handler(req, res) {
       });
     }
     
+    console.log(`Getting test results for workspace: ${workspaceId}, path: ${path}`);
+    
     // Initialize Edge Config client
     const edgeConfig = createClient(process.env.EDGE_CONFIG);
     
@@ -41,6 +43,21 @@ export default async function handler(req, res) {
       variants: {}
     };
     
+    // Try to get list of available workspaces
+    let availableWorkspaces = [];
+    try {
+      const workspacesKey = 'workspaces';
+      availableWorkspaces = await edgeConfig.get(workspacesKey) || [];
+      
+      // If this workspace is not in the list, add it
+      if (!availableWorkspaces.includes(workspaceId) && workspaceId !== 'default') {
+        availableWorkspaces.push(workspaceId);
+        await edgeConfig.set(workspacesKey, availableWorkspaces);
+      }
+    } catch (workspacesError) {
+      console.warn('Error getting workspaces list:', workspacesError);
+    }
+    
     // Calculate performance metrics for each variant
     const results = calculateTestResults(config, stats);
     
@@ -52,7 +69,8 @@ export default async function handler(req, res) {
       totalCtaClicks: stats.ctaClicks || 0,
       totalConversions: stats.conversions || 0,
       startDate: stats.startDate,
-      lastUpdate: stats.lastUpdate || new Date().toISOString()
+      lastUpdate: stats.lastUpdate || new Date().toISOString(),
+      availableWorkspaces
     });
   } catch (error) {
     console.error('Error retrieving test results:', error);
