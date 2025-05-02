@@ -86,171 +86,160 @@
     setupDashboardShortcut();
   }
   
-  // Get the user type from the API
-  async function getUserType() {
+  // API request helper function
+  async function apiRequest(endpoint, method = 'GET', data = null) {
+    const apiBase = state.apiBase || 'https://ai-cro-eight.vercel.app';
+    
+    // Use the combined API endpoint
+    let url = `${apiBase}/api/combined-ops?op=${endpoint}`;
+    
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    if (data) {
+      options.body = JSON.stringify(data);
+    }
+    
     try {
-      // Check URL parameters first for testing purposes
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('user_type')) {
-        const paramUserType = urlParams.get('user_type');
-        console.log(`Cursor AI-CRO: User type from URL parameter: ${paramUserType}`);
-        state.userSegments = [paramUserType];
-        return paramUserType;
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error(`Error in ${endpoint} request:`, err);
+      return null;
+    }
+  }
+
+  // Get user type from API
+  async function getUserType() {
+    if (state.userType !== 'unknown') {
+      return state.userType;
+    }
+    
+    try {
+      const data = {
+        cookies: document.cookie,
+        url: state.pageUrl,
+        referrer: document.referrer,
+        workspace: state.workspaceId,
+        device: getDeviceType(),
+        time: getCurrentHourSegment()
+      };
+      
+      const result = await apiRequest('get-user-type', 'POST', data);
+      
+      if (result && result.type) {
+        state.userType = result.type;
+        state.userSegments = result.segments || [];
+        state.visitorData = result.visitorData || {};
+        return state.userType;
+      }
+    } catch (err) {
+      console.error('Error getting user type:', err);
+    }
+    
+    return 'unknown';
+  }
+
+  // Get personalization config from API
+  async function getConfig() {
+    if (state.config) {
+      return state.config;
+    }
+    
+    try {
+      const result = await apiRequest('get-config', 'POST', {
+        url: state.pageUrl,
+        workspace: state.workspaceId
+      });
+      
+      if (result && result.selectors) {
+        state.config = result;
+        return result;
+      }
+    } catch (err) {
+      console.error('Error getting personalization config:', err);
+    }
+    
+    return null;
+  }
+
+  // Get personalized variants from API
+  async function getVariants(selectors) {
+    try {
+      const data = {
+        userType: state.userType,
+        segments: state.userSegments,
+        workspace: state.workspaceId,
+        selectors: selectors
+      };
+      
+      // Try to use cached variants first
+      const cachedResult = await apiRequest('get-cached-variants', 'POST', data);
+      
+      if (cachedResult && cachedResult.variants) {
+        return cachedResult.variants;
       }
       
-      // Collect visitor data for advanced targeting
-      const email = getEmailFromPage() || getEmailFromCookie();
-      const deviceType = getDeviceType();
-      const browser = getBrowserInfo();
-      const referrer = document.referrer;
-      const timeOnSite = getTimeOnSite();
-      const pageViews = getPageViews();
-      const lastVisit = getLastVisitTimestamp();
+      // Generate new variants if needed
+      const result = await apiRequest('generate-variants', 'POST', data);
       
-      // Get location if available
-      let location = null;
-      if (navigator.geolocation) {
-        try {
-          location = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              position => {
-                resolve(`${position.coords.latitude},${position.coords.longitude}`);
-              },
-              error => {
-                console.warn('Geolocation error:', error);
-                resolve(null);
-              },
-              { timeout: 5000 }
-            );
-          });
-        } catch (geoError) {
-          console.warn('Error getting geolocation:', geoError);
-        }
-      }
-      
-      // Create query parameters for API call
-      const params = new URLSearchParams();
-      if (email) params.append('email', email);
-      
-      // Get client IP
-      const ipAddress = await getClientIP();
-      if (ipAddress) params.append('ipAddress', ipAddress);
-      
-      // Add other parameters
-      if (deviceType) params.append('deviceType', deviceType);
-      if (browser) params.append('browser', browser);
-      if (referrer) params.append('referrer', referrer);
-      if (location) params.append('location', location);
-      if (timeOnSite !== null) params.append('timeOnSite', timeOnSite.toString());
-      if (pageViews !== null) params.append('pageViews', pageViews.toString());
-      if (lastVisit !== null) params.append('lastVisit', lastVisit.toString());
-      
-      // Add workspace ID
-      params.append('workspaceId', state.workspaceId);
-      
-      // Choose API endpoint - use advanced targeting if available
-      let apiEndpoint = 'get-user-type';
-      let useAdvancedTargeting = true;
-      
-      try {
-        // Check if advanced targeting is available by making a HEAD request
-        const checkResponse = await fetch(`${state.apiBase}/api/advanced-targeting`, {
-          method: 'HEAD'
+      if (result && result.variants) {
+        // Cache the newly generated variants
+        await apiRequest('cache-variants', 'POST', {
+          workspace: state.workspaceId,
+          userType: state.userType,
+          variants: result.variants
         });
         
-        if (checkResponse.ok) {
-          apiEndpoint = 'advanced-targeting';
-        } else {
-          useAdvancedTargeting = false;
-        }
-      } catch (error) {
-        console.warn('Advanced targeting not available, using basic targeting');
-        useAdvancedTargeting = false;
+        return result.variants;
       }
-      
-      // Make API call to get user type/segments
-      const response = await fetch(`${state.apiBase}/api/${apiEndpoint}?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get user segments: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (useAdvancedTargeting) {
-        // Store segments for advanced targeting
-        state.userType = data.userType || 'unknown';
-        state.userSegments = data.segments || [];
-        state.visitorData = data.visitorData || {};
-        
-        console.log(`Cursor AI-CRO: User type: ${state.userType}, Segments:`, state.userSegments);
-      } else {
-        // Basic targeting just returns userType
-        state.userType = data.userType || 'unknown';
-        state.userSegments = [state.userType];
-        
-        console.log(`Cursor AI-CRO: User type detected: ${state.userType}`);
-      }
-    } catch (error) {
-      console.warn('Cursor AI-CRO: Error getting user type, using default', error);
-      state.userType = 'unknown';
-      state.userSegments = ['unknown'];
+    } catch (err) {
+      console.error('Error getting variants:', err);
     }
     
-    return state.userType;
+    return {};
   }
-  
-  // Try to find an email on the page (from forms, etc.)
-  function getEmailFromPage() {
-    const emailInputs = document.querySelectorAll('input[type="email"], input[name*="email"]');
-    for (const input of emailInputs) {
-      if (input.value && input.value.includes('@')) {
-        return input.value.trim();
-      }
-    }
-    return null;
-  }
-  
-  // Try to get email from cookies or localStorage
-  function getEmailFromCookie() {
-    // Check various common cookie/storage names for email
-    const storageKeys = [
-      'email', 'userEmail', 'user_email', 'customerEmail', 'visitorEmail'
-    ];
-    
-    // Check localStorage
-    for (const key of storageKeys) {
-      const value = localStorage.getItem(key);
-      if (value && value.includes('@')) {
-        return value.trim();
-      }
+
+  // Record personalization events
+  function recordEvent(event, data = {}) {
+    // Don't track events on local development
+    if (window.location.hostname === 'localhost') {
+      return;
     }
     
-    // Check cookies
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const [name, value] = cookie.split('=').map(s => s.trim());
-      if (storageKeys.some(key => name.toLowerCase().includes(key.toLowerCase())) && 
-          value && value.includes('@')) {
-        return decodeURIComponent(value);
-      }
-    }
+    const eventData = {
+      workspace: state.workspaceId,
+      event,
+      userType: state.userType,
+      segments: state.userSegments,
+      url: state.pageUrl,
+      selector: state.lastClickedSelector,
+      variant: state.lastClickedVariant,
+      variantName: state.lastClickedVariantName,
+      timestamp: Date.now(),
+      ...data
+    };
     
-    return null;
-  }
-  
-  // Get client IP address using a service
-  async function getClientIP() {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      if (response.ok) {
-        const data = await response.json();
-        return data.ip;
-      }
-    } catch (error) {
-      console.warn('Cursor AI-CRO: Could not determine IP address');
+    // Use navigator.sendBeacon for reliable event tracking
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify(eventData)], { type: 'application/json' });
+      navigator.sendBeacon(`${state.apiBase || 'https://ai-cro-eight.vercel.app'}/api/combined-ops?op=record-event`, blob);
+    } else {
+      // Fallback to fetch
+      fetch(`${state.apiBase || 'https://ai-cro-eight.vercel.app'}/api/combined-ops?op=record-event`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      }).catch(err => console.error('Error recording event:', err));
     }
-    return null;
   }
   
   // Get page configuration from Edge Config
@@ -619,82 +608,6 @@
     }
     
     return element.tagName.toLowerCase();
-  }
-  
-  // Record an event to the stats API
-  async function recordEvent(eventType, selector, variant, variantName) {
-    try {
-      // Store the last clicked selector and variant for conversion tracking
-      if (eventType === 'ctaClick' && selector) {
-        state.lastClickedSelector = selector;
-        state.lastClickedVariant = variant;
-        state.lastClickedVariantName = variantName;
-      }
-      
-      if (!state.apiBase) {
-        console.warn('Cursor AI-CRO: Cannot record event, API base not set');
-        return;
-      }
-      
-      const eventData = {
-        eventType,
-        pageUrl: state.pageUrl,
-        workspaceId: state.workspaceId,
-        userType: state.userType,
-        segments: state.userSegments || [], // Include user segments in event data
-        timestamp: new Date().toISOString()
-      };
-      
-      // Add selector and variant info if available
-      if (selector) {
-        eventData.selector = selector;
-        
-        if (variant !== undefined && variant !== null) {
-          eventData.variant = variant;
-        }
-        
-        if (variantName) {
-          eventData.variantName = variantName;
-        }
-      }
-      
-      // Record the event
-      const response = await fetch(`${state.apiBase}/api/record-event`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to record event: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      // If a winner was determined, log it
-      if (result.winner) {
-        console.log(`Cursor AI-CRO: Winner determined for ${result.winner.selector}:`, result.winner);
-      }
-      
-      // Also send event to Google Tag Manager if available
-      if (window.dataLayer) {
-        window.dataLayer.push({
-          event: `cursor_${eventType}`,
-          cursor_selector: selector,
-          cursor_variant: variant,
-          cursor_variant_name: variantName,
-          cursor_user_type: state.userType,
-          cursor_segments: state.userSegments || [] // Include segments
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.warn('Cursor AI-CRO: Error recording event:', error);
-      return null;
-    }
   }
   
   // Initialize when the DOM is fully loaded

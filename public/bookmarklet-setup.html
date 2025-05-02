@@ -161,6 +161,20 @@
         <li><strong>Product Description:</strong> "Rewrite this product description to highlight benefits instead of features"</li>
       </ul>
     </div>
+
+    <div class="card">
+      <h2>Alternative Loading Method</h2>
+      <p>If you're experiencing "NS_BINDING_ABORTED" errors, try this direct loading approach:</p>
+      
+      <div class="form-group">
+        <button id="directLoad" class="copy-button" style="background: #4caf50;">
+          Load Selector Tool Directly
+        </button>
+        <p class="hint">This will attempt to load the selector tool on this page first to verify it works</p>
+      </div>
+      
+      <div id="directLoadResult" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+    </div>
   </div>
 
   <script>
@@ -185,7 +199,7 @@
   window.NEXT_PUBLIC_CURSOR_API_BASE='${baseUrl}';
   window.CURSOR_EDITOR_KEY='${editorKey}';
   var s=document.createElement('script');
-  s.src='${baseUrl}/selector-bookmarklet.js';
+  s.src='${baseUrl}/selector-bookmarklet-min.js';
   document.body.appendChild(s);
 })();`;
       
@@ -205,6 +219,42 @@
       setTimeout(() => {
         copyButton.textContent = 'Copy';
       }, 2000);
+    });
+    
+    // Handle direct load
+    document.getElementById('directLoad').addEventListener('click', async () => {
+      const result = document.getElementById('directLoadResult');
+      result.style.display = 'block';
+      result.style.background = '#fff8e1';
+      result.textContent = 'Loading selector tool...';
+      
+      try {
+        // Try to preload script to check if it's accessible
+        const baseUrl = baseUrlInput.value.trim();
+        if (!baseUrl) {
+          throw new Error('Please enter your API Base URL first');
+        }
+        
+        const scriptUrl = `${baseUrl}/selector-bookmarklet.js`;
+        result.textContent = `Testing script access at: ${scriptUrl}`;
+        
+        const response = await fetch(scriptUrl, {
+          method: 'GET',
+          mode: 'no-cors' // Try with no-cors to see if at least reachable
+        });
+        
+        result.style.background = '#e8f5e9';
+        result.innerHTML = `Script is accessible! Now you can:<br>
+          1. Copy the code above to your bookmarks<br>
+          2. Or use this direct URL to the script: <a href="${scriptUrl}" target="_blank">${scriptUrl}</a>`;
+          
+      } catch (error) {
+        result.style.background = '#ffebee';
+        result.innerHTML = `Error loading script: ${error.message}<br>
+          Try using an alternative approach:<br>
+          1. Host the script file yourself<br>
+          2. Contact support for assistance`;
+      }
     });
     
     // Initialize

@@ -53,6 +53,8 @@ A powerful edge-native tool for website personalization and multivariate testing
 
 > **Tip:** If you encounter any issues with the bookmarklet page, you can use the static fallback page at `https://your-deployment-url.vercel.app/bookmarklet-setup.html`
 
+> **Note for Vercel Hobby Plan users:** If you're getting a function limit error, the setup automatically uses a minimized version of the selector tool that reduces the number of serverless functions required.
+
 ### Step 4: Personalize Your Website
 
 1. **Navigate to the page you want to personalize**

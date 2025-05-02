@@ -16,5 +16,6 @@ export default function handler(req, res) {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   
-  return res.redirect(302, `${baseUrl}/selector-bookmarklet.js`);
+  // Redirect to the minimized version to reduce function count
+  return res.redirect(302, `${baseUrl}/selector-bookmarklet-min.js`);
 } 

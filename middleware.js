@@ -19,6 +19,7 @@ export const config = {
   matcher: [
     '/api/:path*',
     '/selector-bookmarklet.js',
+    '/selector-bookmarklet-min.js',
     '/personalization-loader.js',
   ],
 }; 

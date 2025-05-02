@@ -17,6 +17,16 @@
       ]
     },
     {
+      "source": "/selector-bookmarklet-min.js",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
       "source": "/personalization-loader.js",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
@@ -31,6 +41,10 @@
     {
       "src": "/selector-bookmarklet.js",
       "dest": "/public/selector-bookmarklet.js"
+    },
+    {
+      "src": "/selector-bookmarklet-min.js",
+      "dest": "/public/selector-bookmarklet-min.js"
     },
     {
       "src": "/personalization-loader.js",
