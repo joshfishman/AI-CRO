@@ -3,7 +3,7 @@
   if (window.__selectorToolActive) return;
   window.__selectorToolActive = true;
 
-  const apiBase = 'https://YOUR-VERCEL-APP.vercel.app';
+  const apiBase = 'https://ai-cro-eight.vercel.app';
   const panel = document.createElement('div');
   panel.style = `
     position:fixed;top:10px;right:10px;z-index:2147483647;
