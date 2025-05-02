@@ -1,7 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/selector-bookmarklet.js": {
+    "pages/api/selector-bookmarklet.js": {
       "includeFiles": "public/selector-bookmarklet.js"
     }
   },
@@ -49,10 +49,6 @@
     {
       "src": "/personalization-loader.js",
       "dest": "/public/personalization-loader.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
     }
   ]
 } 
