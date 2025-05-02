@@ -37,13 +37,15 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
      - `CURSOR_EDITOR_KEY` - Generate with: openssl rand -hex 16
      - `NEXT_PUBLIC_CURSOR_API_BASE` - Your Vercel deployment URL
      - `NEXT_PUBLIC_CURSOR_CDN` - Your Vercel deployment URL
+   
+   > Note: You don't need to worry about workspace IDs. The system will use "default" unless you specifically want to create separate workspaces.
 
 ### Step 2: Add the Personalizer to Your Website
 
 1. **Add the script tag**
    - Place this right before the closing `</body>` tag on your website:
    ```html
-   <script src="https://your-deployment-url.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="YOUR_WORKSPACE_ID"></script>
+   <script src="https://your-deployment-url.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
    ```
    
    > **Important:** Make sure to use the exact format shown above with `api?path=` in the URL. 
@@ -53,6 +55,8 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
    > ```html
    > <script src="https://ai-cro-eight.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
    > ```
+   > 
+   > Note: The `data-cursor-workspace` attribute is optional. Using `"default"` is fine for most users. Only change this if you need to manage multiple separate personalization configurations.
 
 2. **Optional: Add fade-in styling**
    - For a smoother user experience, add this to your CSS:
@@ -69,6 +73,7 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
    - Go to `https://your-deployment-url.vercel.app/bookmarklet` 
    - Enter your deployment URL (should auto-populate)
    - Enter your editor key (from the CURSOR_EDITOR_KEY environment variable)
+   - The system will use the "default" workspace automatically
 
 2. **Install the bookmarklet**
    - Drag the "Cursor AI-CRO Selector" link to your bookmarks bar
