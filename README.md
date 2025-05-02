@@ -16,6 +16,58 @@ Here are the correct URLs for the main functionality (replace `ai-cro-three.verc
 | Admin dashboard         | `https://ai-cro-three.vercel.app/admin`                        |
 | Segments manager        | `https://ai-cro-three.vercel.app/segments`                     |
 
+## Quick Start
+
+To integrate AI CRO into your website, add the following script to your site:
+
+```html
+<script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default" defer></script>
+```
+
+### How to Use
+
+1. **Set Up Personalization**
+   
+   **Select Elements to Personalize**: Use the selector bookmarklet to identify elements on your page you want to personalize.
+   
+   ```javascript
+   javascript:(function(){var script=document.createElement('script');script.src='https://ai-cro-three.vercel.app/api?path=selector-bookmarklet.js';document.body.appendChild(script);})();
+   ```
+   
+   Add this as a bookmark in your browser, then click it when on the page you want to personalize.
+
+2. **Configure Selectors**: For each element you select, provide:
+   - A prompt describing what type of content should be generated
+   - The default (original) content for reference
+
+3. **Save Configuration**: Use the API key to save your configuration:
+   
+   ```javascript
+   fetch('https://ai-cro-three.vercel.app/api?path=save-config', {
+     method: 'POST',
+     headers: {
+       'Content-Type': 'application/json',
+       'x-api-key': 'YOUR_EDITOR_API_KEY'
+     },
+     body: JSON.stringify({
+       url: '/your-page-path',
+       workspace: 'default',
+       selectors: [
+         {
+           selector: 'h1.hero-title',
+           prompt: 'Write a catchy headline for a landing page',
+           default: 'Welcome to our service'
+         },
+         {
+           selector: '.cta-button',
+           prompt: 'Write a compelling call to action',
+           default: 'Get Started'
+         }
+       ]
+     })
+   });
+   ```
+
 ## Getting Started with Cursor AI-CRO
 
 ### Step 1: Deploy Your Instance
