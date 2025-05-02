@@ -76,12 +76,14 @@ The bookmarklet allows you to select elements on your website and configure pers
 3. Paste the following code as the URL:
    ```javascript
    javascript:(function(){
+     window.NEXT_PUBLIC_CURSOR_API_BASE='https://your-vercel-url.app';
+     window.CURSOR_EDITOR_KEY='YOUR_EDITOR_KEY';
      var s=document.createElement('script');
      s.src='https://your-vercel-url.app/selector-bookmarklet.js';
      document.body.appendChild(s);
    })();
    ```
-   (Replace 'your-vercel-url.app' with your actual Vercel deployment URL)
+   (Replace 'your-vercel-url.app' with your actual Vercel deployment URL and 'YOUR_EDITOR_KEY' with your CURSOR_EDITOR_KEY)
 
 ### Using the Bookmarklet
 
