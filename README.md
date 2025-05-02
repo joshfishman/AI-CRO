@@ -29,7 +29,7 @@ A powerful edge-native tool for website personalization and multivariate testing
 1. **Add the script tag**
    - Place this right before the closing `</body>` tag on your website:
    ```html
-   <script src="https://your-deployment-url.vercel.app/personalization-loader.js" data-cursor-workspace="YOUR_WORKSPACE_ID"></script>
+   <script src="https://your-deployment-url.vercel.app/api/personalization-loader.js" data-cursor-workspace="YOUR_WORKSPACE_ID"></script>
    ```
 
 2. **Optional: Add fade-in styling**
