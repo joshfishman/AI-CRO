@@ -2,6 +2,8 @@
 
 A powerful edge-native tool for website personalization and multivariate testing using AI, with zero hard-coding required.
 
+**Latest Update:** Fixed API paths and improved cross-origin compatibility.
+
 ## Getting Started with Cursor AI-CRO
 
 ### Step 1: Deploy Your Instance
