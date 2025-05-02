@@ -22,7 +22,7 @@ export default function Bookmarklet() {
     
     const fetchBookmarklet = async () => {
       try {
-        const response = await fetch(`/api/get-bookmarklet?baseUrl=${encodeURIComponent(hostInput)}&editorKey=${encodeURIComponent(editorKey || '')}`);
+        const response = await fetch(`/api?path=get-bookmarklet&baseUrl=${encodeURIComponent(hostInput)}&editorKey=${encodeURIComponent(editorKey || '')}`);
         if (response.ok) {
           const code = await response.text();
           setBookmarkletCode(code);

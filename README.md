@@ -29,8 +29,11 @@ A powerful edge-native tool for website personalization and multivariate testing
 1. **Add the script tag**
    - Place this right before the closing `</body>` tag on your website:
    ```html
-   <script src="https://your-deployment-url.vercel.app/api/personalization-loader.js" data-cursor-workspace="YOUR_WORKSPACE_ID"></script>
+   <script src="https://your-deployment-url.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="YOUR_WORKSPACE_ID"></script>
    ```
+   
+   > **Important:** Make sure to use the exact format shown above with `api?path=` in the URL. 
+   > Do NOT use `/api/personalization-loader.js` (which will cause 404 errors).
 
 2. **Optional: Add fade-in styling**
    - For a smoother user experience, add this to your CSS:
@@ -45,7 +48,8 @@ A powerful edge-native tool for website personalization and multivariate testing
 
 1. **Visit your bookmarklet generator page**
    - Go to `https://your-deployment-url.vercel.app/bookmarklet` 
-   - Enter your deployment URL and editor key
+   - Enter your deployment URL (should auto-populate)
+   - Enter your editor key (from the CURSOR_EDITOR_KEY environment variable)
 
 2. **Install the bookmarklet**
    - Drag the "Cursor AI-CRO Selector" link to your bookmarks bar

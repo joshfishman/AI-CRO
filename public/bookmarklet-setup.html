@@ -174,6 +174,17 @@
       </div>
       
       <div id="directLoadResult" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+      
+      <div style="margin-top: 15px; font-size: 13px; background: #f5f5f5; padding: 10px; border-radius: 4px;">
+        <p><strong>Important:</strong> Make sure you use the correct API path format in all references:</p>
+        <code style="display: block; margin: 8px 0; padding: 8px; background: #eee; border-radius: 4px; word-break: break-all;">
+          https://your-deployment-url.vercel.app/api?path=personalization-loader.js
+        </code>
+        <p>Not the older format (which will cause 404 errors):</p>
+        <code style="display: block; margin: 8px 0; padding: 8px; background: #ffebee; border-radius: 4px; text-decoration: line-through; word-break: break-all;">
+          https://your-deployment-url.vercel.app/api/personalization-loader.js
+        </code>
+      </div>
     </div>
   </div>
 
@@ -199,7 +210,7 @@
   window.NEXT_PUBLIC_CURSOR_API_BASE='${baseUrl}';
   window.CURSOR_EDITOR_KEY='${editorKey}';
   var s=document.createElement('script');
-  s.src='${baseUrl}/api/selector-bookmarklet.js';
+  s.src='${baseUrl}/api?path=selector-bookmarklet.js';
   document.body.appendChild(s);
 })();`;
       
@@ -235,7 +246,7 @@
           throw new Error('Please enter your API Base URL first');
         }
         
-        const scriptUrl = `${baseUrl}/selector-bookmarklet.js`;
+        const scriptUrl = `${baseUrl}/api?path=selector-bookmarklet.js`;
         result.textContent = `Testing script access at: ${scriptUrl}`;
         
         const response = await fetch(scriptUrl, {
