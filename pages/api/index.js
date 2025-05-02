@@ -250,7 +250,7 @@ function serveSelectorBookmarklet(req, res) {
     if (typeof window === 'undefined') return;
     
     // Configuration
-    const apiBase = window.NEXT_PUBLIC_CURSOR_API_BASE || 'https://ai-cro-eight.vercel.app';
+    const apiBase = window.NEXT_PUBLIC_CURSOR_API_BASE || 'https://ai-cro-three.vercel.app';
     const editorKey = window.CURSOR_EDITOR_KEY || prompt('Enter your Cursor Editor Key:');
     
     if (!editorKey) {

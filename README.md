@@ -6,15 +6,15 @@ A powerful edge-native tool for website personalization and multivariate testing
 
 ## Quick Reference URLs
 
-Here are the correct URLs for the main functionality (replace `ai-cro-eight.vercel.app` with your own deployment URL):
+Here are the correct URLs for the main functionality (replace `ai-cro-three.vercel.app` with your own deployment URL):
 
 | Function                | URL Format                                                      |
 |-------------------------|----------------------------------------------------------------|
-| Personalization script  | `https://ai-cro-eight.vercel.app/api?path=personalization-loader.js` |
-| Bookmarklet generator   | `https://ai-cro-eight.vercel.app/bookmarklet`                  |
-| Static bookmarklet page | `https://ai-cro-eight.vercel.app/bookmarklet-setup.html`       |
-| Admin dashboard         | `https://ai-cro-eight.vercel.app/admin`                        |
-| Segments manager        | `https://ai-cro-eight.vercel.app/segments`                     |
+| Personalization script  | `https://ai-cro-three.vercel.app/api?path=personalization-loader.js` |
+| Bookmarklet generator   | `https://ai-cro-three.vercel.app/bookmarklet`                  |
+| Static bookmarklet page | `https://ai-cro-three.vercel.app/bookmarklet-setup.html`       |
+| Admin dashboard         | `https://ai-cro-three.vercel.app/admin`                        |
+| Segments manager        | `https://ai-cro-three.vercel.app/segments`                     |
 
 ## Getting Started with Cursor AI-CRO
 
@@ -51,9 +51,9 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
    > **Important:** Make sure to use the exact format shown above with `api?path=` in the URL. 
    > Do NOT use `/api/personalization-loader.js` (which will cause 404 errors).
    >
-   > For example, if your deployment is at ai-cro-eight.vercel.app, use:
+   > For example, if your deployment is at ai-cro-three.vercel.app, use:
    > ```html
-   > <script src="https://ai-cro-eight.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
+   > <script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
    > ```
    > 
    > Note: The `data-cursor-workspace` attribute is optional. Using `"default"` is fine for most users. Only change this if you need to manage multiple separate personalization configurations.
@@ -82,8 +82,8 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
 > **Tip:** If you encounter any issues with the bookmarklet page, you can use the static fallback page at `https://your-deployment-url.vercel.app/bookmarklet-setup.html`
 > 
 > For example:
-> - Main bookmarklet page: `https://ai-cro-eight.vercel.app/bookmarklet`
-> - Static fallback: `https://ai-cro-eight.vercel.app/bookmarklet-setup.html`
+> - Main bookmarklet page: `https://ai-cro-three.vercel.app/bookmarklet`
+> - Static fallback: `https://ai-cro-three.vercel.app/bookmarklet-setup.html`
 
 > **Note for Vercel Hobby Plan users:** If you're getting a function limit error, the setup automatically uses a minimized version of the selector tool that reduces the number of serverless functions required.
 
@@ -113,13 +113,13 @@ Here are the correct URLs for the main functionality (replace `ai-cro-eight.verc
    - Go to `https://your-deployment-url.vercel.app/admin`
    - Sign in with your editor key
    
-   Example: `https://ai-cro-eight.vercel.app/admin`
+   Example: `https://ai-cro-three.vercel.app/admin`
 
 2. **Manage custom segments**
    - Go to `https://your-deployment-url.vercel.app/segments`
    - Create and manage user segments based on specific rules
    
-   Example: `https://ai-cro-eight.vercel.app/segments`
+   Example: `https://ai-cro-three.vercel.app/segments`
 
 3. **View test results**
    - See statistics for each variant
