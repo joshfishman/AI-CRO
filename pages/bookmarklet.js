@@ -20,15 +20,19 @@ export default function Bookmarklet() {
   useEffect(() => {
     if (!hostInput) return;
     
-    const code = `javascript:(function(){
-  window.NEXT_PUBLIC_CURSOR_API_BASE='${hostInput}';
-  window.CURSOR_EDITOR_KEY='${editorKey}';
-  var s=document.createElement('script');
-  s.src='${hostInput}/selector-bookmarklet.js';
-  document.body.appendChild(s);
-})();`;
+    const fetchBookmarklet = async () => {
+      try {
+        const response = await fetch(`/api/get-bookmarklet?baseUrl=${encodeURIComponent(hostInput)}&editorKey=${encodeURIComponent(editorKey || '')}`);
+        if (response.ok) {
+          const code = await response.text();
+          setBookmarkletCode(code);
+        }
+      } catch (error) {
+        console.error('Error fetching bookmarklet:', error);
+      }
+    };
     
-    setBookmarkletCode(code);
+    fetchBookmarklet();
   }, [hostInput, editorKey]);
   
   // Handle copy button click
@@ -65,7 +69,7 @@ export default function Bookmarklet() {
                 type="text"
                 value={hostInput}
                 onChange={(e) => setHostInput(e.target.value)}
-                placeholder="https://ai-cro-eight.vercel.app"
+                placeholder="https://your-deployment-url.vercel.app"
                 className={styles.input}
               />
               <p className={styles.hint}>Usually your deployment URL</p>

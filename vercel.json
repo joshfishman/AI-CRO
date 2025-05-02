@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/selector-bookmarklet.js",
+      "dest": "/public/selector-bookmarklet.js",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "Content-Type": "application/javascript"
+      }
+    },
+    {
+      "src": "/personalization-loader.js",
+      "dest": "/public/personalization-loader.js",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "Content-Type": "application/javascript"
+      }
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ]
+} 
