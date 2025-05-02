@@ -140,6 +140,31 @@ When creating variants, you can target specific user segments:
 - **Engagement Levels**: High, Medium, Low
 - **Custom Segments**: Define your own in the segment manager
 
+## Deployment Instructions
+
+### Quick Setup
+
+1. **Deploy to Vercel**
+   - Fork this repository
+   - Connect to Vercel and deploy
+   - Set your deployment URL to ai-cro-three.vercel.app
+
+2. **Environment Variables**
+   - OPENAI_API_KEY: Your OpenAI API key
+   - CURSOR_EDITOR_KEY: Generate with `openssl rand -hex 16`
+   - NEXT_PUBLIC_CURSOR_API_BASE: https://ai-cro-three.vercel.app
+   - NEXT_PUBLIC_CURSOR_CDN: https://ai-cro-three.vercel.app
+
+3. **Add to Website**
+   ```html
+   <script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
+   ```
+
+4. **Access Tools**
+   - Bookmarklet: https://ai-cro-three.vercel.app/bookmarklet
+   - Admin Dashboard: https://ai-cro-three.vercel.app/admin
+   - Segments Manager: https://ai-cro-three.vercel.app/segments
+
 ## Troubleshooting
 
 - **Bookmarklet not working?** Make sure your deployment URL is correct and the editor key is valid
