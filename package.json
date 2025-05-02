@@ -1,0 +1,15 @@
+{
+  "name": "ai-cro",
+  "version": "1.0.0",
+  "description": "A tool for website personalization and conversion rate optimization using AI",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "init-config": "node init-edge-config.js"
+  },
+  "dependencies": {
+    "@vercel/edge-config": "^0.4.1",
+    "dotenv": "^16.3.1",
+    "openai": "^4.0.0"
+  }
+}
