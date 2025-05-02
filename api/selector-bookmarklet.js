@@ -1,22 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-
-// This API route serves the selector bookmarklet file directly from the public folder
+// This API route redirects to the static selector bookmarklet file
 export default function handler(req, res) {
-  try {
-    // Get the path to the static file
-    const filePath = path.join(process.cwd(), 'public', 'selector-bookmarklet.js');
-    
-    // Read the file content
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    
-    // Set correct content type
-    res.setHeader('Content-Type', 'application/javascript');
-    
-    // Send the file content
-    res.status(200).send(fileContent);
-  } catch (error) {
-    console.error('Error serving selector-bookmarklet.js:', error);
-    res.status(500).json({ error: 'Failed to serve the bookmarklet file' });
-  }
+  // Instead of reading from the filesystem, redirect to the static file path
+  // This is more reliable in a serverless environment
+  const host = req.headers.host || 'localhost:3000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+  
+  return res.redirect(302, `${baseUrl}/selector-bookmarklet.js`);
 } 

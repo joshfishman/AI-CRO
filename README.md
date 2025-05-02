@@ -51,6 +51,8 @@ A powerful edge-native tool for website personalization and multivariate testing
    - Drag the "Cursor AI-CRO Selector" link to your bookmarks bar
    - Or copy the code and create a new bookmark with it
 
+> **Tip:** If you encounter any issues with the bookmarklet page, you can use the static fallback page at `https://your-deployment-url.vercel.app/bookmarklet-setup.html`
+
 ### Step 4: Personalize Your Website
 
 1. **Navigate to the page you want to personalize**

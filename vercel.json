@@ -1,12 +1,18 @@
 {
   "version": 2,
+  "functions": {
+    "api/selector-bookmarklet.js": {
+      "includeFiles": "public/selector-bookmarklet.js"
+    }
+  },
   "routes": [
     {
       "src": "/selector-bookmarklet.js",
       "dest": "/public/selector-bookmarklet.js",
       "headers": {
         "cache-control": "public, max-age=31536000, immutable",
-        "Content-Type": "application/javascript"
+        "Content-Type": "application/javascript",
+        "Cross-Origin-Resource-Policy": "cross-origin"
       }
     },
     {
@@ -14,7 +20,8 @@
       "dest": "/public/personalization-loader.js",
       "headers": {
         "cache-control": "public, max-age=31536000, immutable",
-        "Content-Type": "application/javascript"
+        "Content-Type": "application/javascript",
+        "Cross-Origin-Resource-Policy": "cross-origin"
       }
     },
     {
