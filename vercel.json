@@ -5,24 +5,36 @@
       "includeFiles": "public/selector-bookmarklet.js"
     }
   },
+  "headers": [
+    {
+      "source": "/selector-bookmarklet.js",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/personalization-loader.js",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Accept" },
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/selector-bookmarklet.js",
-      "dest": "/public/selector-bookmarklet.js",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable",
-        "Content-Type": "application/javascript",
-        "Cross-Origin-Resource-Policy": "cross-origin"
-      }
+      "dest": "/public/selector-bookmarklet.js"
     },
     {
       "src": "/personalization-loader.js",
-      "dest": "/public/personalization-loader.js",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable",
-        "Content-Type": "application/javascript",
-        "Cross-Origin-Resource-Policy": "cross-origin"
-      }
+      "dest": "/public/personalization-loader.js"
     },
     {
       "src": "/api/(.*)",
