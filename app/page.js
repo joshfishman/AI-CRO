@@ -15,6 +15,20 @@ export default function Home() {
               <p className="text-gray-600">Manage your AI CRO settings</p>
             </div>
           </Link>
+
+          <Link href="/segments" className="block">
+            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <h2 className="text-xl font-semibold mb-2">Segments</h2>
+              <p className="text-gray-600">View and manage user segments</p>
+            </div>
+          </Link>
+
+          <Link href="/bookmarklet" className="block">
+            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <h2 className="text-xl font-semibold mb-2">Bookmarklet</h2>
+              <p className="text-gray-600">Get the selector bookmarklet for your site</p>
+            </div>
+          </Link>
         </div>
       </main>
     </div>
