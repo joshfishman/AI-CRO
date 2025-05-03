@@ -69,7 +69,7 @@ export default function Bookmarklet() {
                 type="text"
                 value={hostInput}
                 onChange={(e) => setHostInput(e.target.value)}
-                placeholder="https://your-deployment-url.vercel.app"
+                placeholder="https://ai-cro-three.vercel.app"
                 className={styles.input}
               />
               <p className={styles.hint}>Usually your deployment URL</p>
