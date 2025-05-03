@@ -357,29 +357,14 @@ function serveSelectorBookmarklet(req, res) {
   return res.status(200).send(script);
 }
 
-// Handle get bookmarklet request
+// Handle get-bookmarklet request
 function handleGetBookmarklet(req, res) {
-  const { baseUrl, editorKey } = req.query;
+  const baseUrl = req.query.baseUrl || '';
+  const editorKey = req.query.editorKey || '';
   
-  if (!baseUrl) {
-    return res.status(400).json({ error: 'Missing baseUrl parameter' });
-  }
+  // Generate bookmarklet code with correct API path format
+  const bookmarkletCode = `javascript:(function(){var script=document.createElement('script');script.src='${baseUrl}/api?path=selector-bookmarklet.js';document.body.appendChild(script);})();`;
   
-  // Create the bookmarklet code with the provided parameters
-  const bookmarkletCode = `javascript:(function(){
-  // This code only runs when the bookmark is clicked in the browser
-  window.NEXT_PUBLIC_CURSOR_API_BASE='${baseUrl}';
-  window.CURSOR_EDITOR_KEY='${editorKey || ''}';
-  var s=document.createElement('script');
-  s.src='${baseUrl}/api?path=selector-bookmarklet.js';
-  document.body.appendChild(s);
-})();`;
-  
-  // Set headers to prevent caching
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Content-Type', 'text/plain');
-  
-  // Return the bookmarklet code
   return res.status(200).send(bookmarkletCode);
 }
 
