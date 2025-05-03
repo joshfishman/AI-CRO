@@ -18,15 +18,6 @@
   width: 100%;
 }
 
-.footer {
-  width: 100%;
-  height: 100px;
-  border-top: 1px solid #eaeaea;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .title {
   margin: 0;
   line-height: 1.15;
@@ -69,43 +60,6 @@
   font-size: 1.5rem;
 }
 
-.steps {
-  padding-left: 1.5rem;
-}
-
-.steps li {
-  margin-bottom: 1rem;
-}
-
-.tools {
-  margin: 1rem 0;
-}
-
-.toolLink {
-  text-decoration: none;
-  color: inherit;
-}
-
-.tool {
-  padding: 1rem;
-  border: 1px solid #eaeaea;
-  border-radius: 4px;
-  transition: border-color 0.15s ease;
-}
-
-.tool:hover {
-  border-color: #0070f3;
-}
-
-.tool h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
-}
-
-.installSection {
-  margin-top: 2rem;
-}
-
 .formGroup {
   margin-bottom: 1rem;
 }
@@ -124,32 +78,47 @@
   font-size: 1rem;
 }
 
-.codeBlock {
-  position: relative;
-  margin: 1rem 0;
-  padding: 1rem;
-  background: #f5f5f5;
-  border-radius: 4px;
-  font-family: monospace;
+.hint {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #666;
 }
 
-.copyButton {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  padding: 0.25rem 0.5rem;
-  background: #333;
+.button {
+  padding: 0.5rem 1rem;
+  background: #0070f3;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-weight: bold;
 }
 
-.instruction {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: #666;
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  border: 1px solid #eaeaea;
+  text-align: left;
+}
+
+.table th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+
+.footer {
+  width: 100%;
+  height: 100px;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @media (max-width: 600px) {
