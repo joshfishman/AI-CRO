@@ -1,33 +1,12 @@
-'use client';
-
 import './globals.css';
-import { useEffect } from 'react';
+import RouteLogger from './components/RouteLogger';
 
 export const metadata = {
   title: 'AI CRO',
   description: 'AI-powered conversion rate optimization',
 };
 
-function logError(error, info) {
-  console.error('Layout Error:', error);
-  console.error('Error Info:', info);
-}
-
 export default function RootLayout({ children }) {
-  useEffect(() => {
-    console.log('Root layout mounted');
-    
-    // Log route changes
-    const logRoute = () => {
-      console.log('Current path:', window.location.pathname);
-    };
-    
-    window.addEventListener('popstate', logRoute);
-    logRoute(); // Log initial route
-    
-    return () => window.removeEventListener('popstate', logRoute);
-  }, []);
-
   return (
     <html lang="en">
       <head>
@@ -35,6 +14,7 @@ export default function RootLayout({ children }) {
         <meta httpEquiv="Permissions-Policy" content="interest-cohort=()" />
       </head>
       <body className="min-h-screen bg-gray-50">
+        <RouteLogger />
         {children}
       </body>
     </html>
