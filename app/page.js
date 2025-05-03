@@ -1,12 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  useEffect(() => {
+    console.log('Home page mounted');
+    console.log('Current URL:', window.location.href);
+    console.log('Current pathname:', window.location.pathname);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-8">AI CRO Dashboard</h1>
+        <p className="text-center">If you can see this, the page is loading correctly.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link href="/admin" className="block">
