@@ -20,13 +20,13 @@ export default function Bookmarklet() {
       </Head>
 
       <main className="container mx-auto px-4 py-12">
-        <h1 className="title">Element Selector Bookmarklet</h1>
-        <p className="description">
+        <h1 className="text-4xl font-bold text-center mb-8">Element Selector Bookmarklet</h1>
+        <p className="text-xl text-center text-gray-600 mb-8">
           Generate a bookmarklet to select elements on your website for personalization
         </p>
 
         <div className="max-w-2xl mx-auto">
-          <div className="card">
+          <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <h2 className="text-2xl font-bold mb-6">Generate Bookmarklet</h2>
             <div className="space-y-4">
               <div>
@@ -38,7 +38,7 @@ export default function Bookmarklet() {
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
                   placeholder="example.com"
-                  className="input"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <p className="mt-1 text-sm text-gray-500">
                   Enter your website domain to generate a bookmarklet
@@ -46,7 +46,7 @@ export default function Bookmarklet() {
               </div>
               <button
                 onClick={generateBookmarklet}
-                className="btn"
+                className="w-full px-4 py-2 bg-primary text-white rounded-md font-bold hover:bg-opacity-90"
               >
                 Generate Bookmarklet
               </button>
@@ -54,7 +54,7 @@ export default function Bookmarklet() {
           </div>
 
           {bookmarklet && (
-            <div className="card mt-8">
+            <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow mt-8">
               <h2 className="text-2xl font-bold mb-6">Your Bookmarklet</h2>
               <div className="space-y-4">
                 <div className="relative">
@@ -75,7 +75,7 @@ export default function Bookmarklet() {
             </div>
           )}
 
-          <div className="card mt-8">
+          <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow mt-8">
             <h2 className="text-2xl font-bold mb-6">How to Use</h2>
             <ol className="list-decimal pl-5 space-y-2">
               <li>Generate your bookmarklet using the form above</li>
