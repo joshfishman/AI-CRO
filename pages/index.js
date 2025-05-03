@@ -8,7 +8,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   
   const scriptCode = `<!-- Cursor AI-CRO Personalization -->
-<script src="https://ai-cro-eight.vercel.app/personalization-loader.js" 
+<script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" 
         data-cursor-workspace="${workspaceId}"></script>
 
 <!-- Optional: Fade-in CSS for personalized elements -->
