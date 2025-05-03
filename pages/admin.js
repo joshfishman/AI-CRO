@@ -1,6 +1,5 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import styles from '../styles/Admin.module.css';
 
 export default function Admin() {
   const [config, setConfig] = useState({
@@ -70,8 +69,8 @@ export default function Admin() {
       </Head>
 
       <main className="container mx-auto px-4 py-12">
-        <h1 className="title">Admin Dashboard</h1>
-        <p className="description">
+        <h1 className="text-4xl font-bold text-center mb-8">Admin Dashboard</h1>
+        <p className="text-xl text-center text-gray-600 mb-8">
           Configure your AI CRO settings
         </p>
 
@@ -83,7 +82,7 @@ export default function Admin() {
 
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="card">
+            <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-2xl font-bold mb-6">API Configuration</h2>
               <div className="space-y-4">
                 <div>
@@ -94,7 +93,7 @@ export default function Admin() {
                     type="password"
                     value={config.apiKey}
                     onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                    className="input"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="sk-..."
                   />
                 </div>
@@ -106,7 +105,7 @@ export default function Admin() {
                   <select
                     value={config.model}
                     onChange={(e) => setConfig({ ...config, model: e.target.value })}
-                    className="input"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
                     <option value="gpt-4">GPT-4</option>
                     <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
@@ -124,7 +123,7 @@ export default function Admin() {
                     min="0"
                     max="1"
                     step="0.1"
-                    className="input"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
 
@@ -138,13 +137,13 @@ export default function Admin() {
                     onChange={(e) => setConfig({ ...config, maxTokens: parseInt(e.target.value) })}
                     min="1"
                     max="2048"
-                    className="input"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="card">
+            <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-2xl font-bold mb-6">User Types</h2>
               <div className="space-y-4">
                 {config.userTypes.map((type, index) => (
@@ -157,7 +156,7 @@ export default function Admin() {
                         newTypes[index] = e.target.value;
                         setConfig({ ...config, userTypes: newTypes });
                       }}
-                      className="input flex-1"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="User Type"
                     />
                     <button
@@ -175,14 +174,14 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={() => setConfig({ ...config, userTypes: [...config.userTypes, ''] })}
-                  className="btn bg-gray-500 hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md font-bold hover:bg-gray-600"
                 >
                   Add User Type
                 </button>
               </div>
             </div>
 
-            <div className="card">
+            <div className="p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-2xl font-bold mb-6">Segments</h2>
               <div className="space-y-4">
                 {config.segments.map((segment, index) => (
@@ -196,7 +195,7 @@ export default function Admin() {
                           newSegments[index] = { ...segment, name: e.target.value };
                           setConfig({ ...config, segments: newSegments });
                         }}
-                        className="input flex-1"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="Segment Name"
                       />
                       <button
@@ -217,7 +216,7 @@ export default function Admin() {
                         newSegments[index] = { ...segment, rules: e.target.value };
                         setConfig({ ...config, segments: newSegments });
                       }}
-                      className="input"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       rows="3"
                       placeholder="Segment Rules (JSON)"
                     />
@@ -226,7 +225,7 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={() => setConfig({ ...config, segments: [...config.segments, { name: '', rules: '' }] })}
-                  className="btn bg-gray-500 hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md font-bold hover:bg-gray-600"
                 >
                   Add Segment
                 </button>
@@ -236,7 +235,7 @@ export default function Admin() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="btn"
+                className="px-4 py-2 bg-primary text-white rounded-md font-bold hover:bg-opacity-90"
                 disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save Configuration'}
