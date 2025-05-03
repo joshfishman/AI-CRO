@@ -1,115 +1,97 @@
 import Head from 'next/head';
-import Link from 'next/link';
 import { useState } from 'react';
-import styles from '../styles/Home.module.css';
 
 export default function Home() {
-  const [workspaceId, setWorkspaceId] = useState('YOUR_WORKSPACE_ID');
-  const [copied, setCopied] = useState(false);
-  
-  const scriptCode = `<!-- Cursor AI-CRO Personalization -->
-<script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" 
-        data-cursor-workspace="${workspaceId}"></script>
+  const [domain, setDomain] = useState('');
+  const [bookmarklet, setBookmarklet] = useState('');
 
-<!-- Optional: Fade-in CSS for personalized elements -->
-<style>
-.personalize-target{visibility:hidden;opacity:0;transition:opacity .3s}
-.personalized-loaded .personalize-target{visibility:visible;opacity:1}
-</style>`;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(scriptCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const generateBookmarklet = () => {
+    const encodedDomain = encodeURIComponent(domain);
+    const bookmarkletCode = `javascript:(function(){var s=document.createElement('script');s.src='https://ai-cro-three.vercel.app/api/selector-bookmarklet?domain=${encodedDomain}';document.body.appendChild(s);})();`;
+    setBookmarklet(bookmarkletCode);
   };
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>Cursor AI-CRO | AI Website Personalization</title>
-        <meta name="description" content="Personalize your website content with AI" />
+        <title>AI CRO - Website Personalization Tool</title>
+        <meta name="description" content="AI-powered website personalization and conversion rate optimization tool" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Cursor AI-CRO
-        </h1>
-
-        <p className={styles.description}>
-          AI-powered website personalization
+      <main className="container mx-auto px-4 py-12">
+        <h1 className="title">AI CRO</h1>
+        <p className="description">
+          AI-powered website personalization and conversion rate optimization tool
         </p>
 
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <h2>How It Works</h2>
-            <ol className={styles.steps}>
-              <li>
-                <strong>Configure Personalization</strong>
-                <p>Use the bookmarklet to select elements and create AI prompts</p>
-              </li>
-              <li>
-                <strong>Add the Loader Script</strong>
-                <p>Embed the personalization script in your website</p>
-              </li>
-              <li>
-                <strong>Personalize for Visitors</strong>
-                <p>AI-generated content tailored to each visitor type</p>
-              </li>
-              <li>
-                <strong>Optimize with A/B Testing</strong>
-                <p>Track performance and automatically apply winning variants</p>
-              </li>
-            </ol>
-          </div>
-
-          <div className={styles.card}>
-            <h2>Get Started</h2>
-            
-            <div className={styles.tools}>
-              <Link href="/bookmarklet" className={styles.toolLink}>
-                <div className={styles.tool}>
-                  <h3>Element Selector &rarr;</h3>
-                  <p>Set up the bookmarklet to select and configure elements</p>
-                </div>
-              </Link>
-            </div>
-            
-            <div className={styles.installSection}>
-              <h3>Install the Loader Script</h3>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Your Workspace ID:</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <div className="card">
+            <h2 className="text-2xl font-bold mb-4">Bookmarklet Generator</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Website Domain
+                </label>
                 <input
                   type="text"
-                  value={workspaceId}
-                  onChange={(e) => setWorkspaceId(e.target.value)}
-                  className={styles.input}
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  placeholder="example.com"
+                  className="input"
                 />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter your website domain to generate a bookmarklet
+                </p>
               </div>
-              
-              <pre className={styles.codeBlock}>
-                <code>{scriptCode}</code>
-                <button 
-                  onClick={handleCopy}
-                  className={styles.copyButton}
+              <button
+                onClick={generateBookmarklet}
+                className="btn"
+              >
+                Generate Bookmarklet
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2 className="text-2xl font-bold mb-4">Installation Steps</h2>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>Generate your bookmarklet using the form</li>
+              <li>Drag the generated bookmarklet to your bookmarks bar</li>
+              <li>Visit your website and click the bookmarklet</li>
+              <li>Select elements to personalize</li>
+              <li>Configure your personalization rules</li>
+            </ol>
+          </div>
+        </div>
+
+        {bookmarklet && (
+          <div className="mt-8 max-w-6xl mx-auto">
+            <div className="card">
+              <h2 className="text-2xl font-bold mb-4">Your Bookmarklet</h2>
+              <div className="relative">
+                <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                  <code>{bookmarklet}</code>
+                </pre>
+                <button
+                  onClick={() => navigator.clipboard.writeText(bookmarklet)}
+                  className="absolute top-2 right-2 px-2 py-1 bg-gray-800 text-white text-sm rounded hover:bg-gray-700"
                 >
-                  {copied ? 'Copied!' : 'Copy'}
+                  Copy
                 </button>
-              </pre>
-              
-              <p className={styles.instruction}>
-                Paste this script just before the closing <code>&lt;/body&gt;</code> tag of your website.
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Drag this link to your bookmarks bar: <a href={bookmarklet} className="text-primary hover:underline">AI CRO Selector</a>
               </p>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
-      <footer className={styles.footer}>
-        <p>
-          Cursor AI-CRO - AI-Powered Personalization
-        </p>
+      <footer className="border-t border-gray-200 py-8 mt-12">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          <p>AI CRO - Making website personalization easy</p>
+        </div>
       </footer>
     </div>
   );

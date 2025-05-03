@@ -1,145 +1,98 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
-import styles from '../styles/Bookmarklet.module.css';
+import { useState } from 'react';
 
 export default function Bookmarklet() {
-  const [bookmarkletCode, setBookmarkletCode] = useState('');
-  const [hostInput, setHostInput] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [editorKey, setEditorKey] = useState('');
-  
-  // Generate the bookmarklet code
-  useEffect(() => {
-    // Default to the current host if available
-    if (typeof window !== 'undefined') {
-      setHostInput(window.location.origin);
-    }
-  }, []);
-  
-  // Update bookmarklet code when host changes
-  useEffect(() => {
-    if (!hostInput) return;
-    
-    const fetchBookmarklet = async () => {
-      try {
-        const response = await fetch(`/api?path=get-bookmarklet&baseUrl=${encodeURIComponent(hostInput)}&editorKey=${encodeURIComponent(editorKey || '')}`);
-        if (response.ok) {
-          const code = await response.text();
-          setBookmarkletCode(code);
-        }
-      } catch (error) {
-        console.error('Error fetching bookmarklet:', error);
-      }
-    };
-    
-    fetchBookmarklet();
-  }, [hostInput, editorKey]);
-  
-  // Handle copy button click
-  const handleCopy = () => {
-    navigator.clipboard.writeText(bookmarkletCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const [domain, setDomain] = useState('');
+  const [bookmarklet, setBookmarklet] = useState('');
+
+  const generateBookmarklet = () => {
+    const encodedDomain = encodeURIComponent(domain);
+    const bookmarkletCode = `javascript:(function(){var s=document.createElement('script');s.src='https://ai-cro-three.vercel.app/api/selector-bookmarklet?domain=${encodedDomain}';document.body.appendChild(s);})();`;
+    setBookmarklet(bookmarkletCode);
   };
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>Cursor AI-CRO Bookmarklet</title>
-        <meta name="description" content="Cursor AI-CRO element selector bookmarklet" />
+        <title>AI CRO - Element Selector Bookmarklet</title>
+        <meta name="description" content="Generate a bookmarklet to select elements for personalization" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Cursor AI-CRO Bookmarklet
-        </h1>
-
-        <p className={styles.description}>
-          Use this bookmarklet to select elements for AI personalization
+      <main className="container mx-auto px-4 py-12">
+        <h1 className="title">Element Selector Bookmarklet</h1>
+        <p className="description">
+          Generate a bookmarklet to select elements on your website for personalization
         </p>
 
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <h2>Setup Instructions</h2>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>API Base URL:</label>
-              <input
-                type="text"
-                value={hostInput}
-                onChange={(e) => setHostInput(e.target.value)}
-                placeholder="https://ai-cro-three.vercel.app"
-                className={styles.input}
-              />
-              <p className={styles.hint}>Usually your deployment URL</p>
-            </div>
-            
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Editor API Key:</label>
-              <input
-                type="text"
-                value={editorKey}
-                onChange={(e) => setEditorKey(e.target.value)}
-                placeholder="Your editor API key"
-                className={styles.input}
-              />
-              <p className={styles.hint}>From CURSOR_EDITOR_KEY environment variable</p>
-            </div>
-            
-            <div className={styles.bookmarklet}>
-              <p><strong>1. Drag this link to your bookmarks bar:</strong></p>
-              <a 
-                href={bookmarkletCode} 
-                className={styles.bookmarkletLink}
-                onClick={(e) => e.preventDefault()}
+        <div className="max-w-2xl mx-auto">
+          <div className="card">
+            <h2 className="text-2xl font-bold mb-6">Generate Bookmarklet</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Website Domain
+                </label>
+                <input
+                  type="text"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  placeholder="example.com"
+                  className="input"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter your website domain to generate a bookmarklet
+                </p>
+              </div>
+              <button
+                onClick={generateBookmarklet}
+                className="btn"
               >
-                Cursor AI-CRO Selector
-              </a>
-            </div>
-            
-            <div className={styles.codeBlock}>
-              <p><strong>2. Or copy this code:</strong></p>
-              <textarea
-                readOnly
-                value={bookmarkletCode}
-                className={styles.codeArea}
-              />
-              <button 
-                onClick={handleCopy}
-                className={styles.copyButton}
-              >
-                {copied ? 'Copied!' : 'Copy'}
+                Generate Bookmarklet
               </button>
             </div>
           </div>
 
-          <div className={styles.card}>
-            <h2>How to Use</h2>
-            <ol className={styles.instructions}>
-              <li>Set up the bookmarklet with your API base URL and editor key</li>
-              <li>Navigate to the page you want to personalize</li>
-              <li>Click the bookmarklet in your bookmarks bar</li>
+          {bookmarklet && (
+            <div className="card mt-8">
+              <h2 className="text-2xl font-bold mb-6">Your Bookmarklet</h2>
+              <div className="space-y-4">
+                <div className="relative">
+                  <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                    <code>{bookmarklet}</code>
+                  </pre>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(bookmarklet)}
+                    className="absolute top-2 right-2 px-2 py-1 bg-gray-800 text-white text-sm rounded hover:bg-gray-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Drag this link to your bookmarks bar: <a href={bookmarklet} className="text-primary hover:underline">AI CRO Selector</a>
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="card mt-8">
+            <h2 className="text-2xl font-bold mb-6">How to Use</h2>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>Generate your bookmarklet using the form above</li>
+              <li>Drag the generated bookmarklet to your bookmarks bar</li>
+              <li>Visit your website and click the bookmarklet</li>
               <li>Click on elements you want to personalize</li>
-              <li>For each element, enter a prompt for AI to generate content</li>
-              <li>Click "Save Config" when done</li>
-              <li>Add the personalization loader script to your site</li>
+              <li>Configure personalization rules for each element</li>
+              <li>Save your configuration</li>
             </ol>
-            
-            <h3 className={styles.subsection}>Example Prompts</h3>
-            <ul className={styles.examples}>
-              <li><strong>Heading:</strong> "Write a catchy headline for a landing page selling eco-friendly water bottles"</li>
-              <li><strong>Call to Action:</strong> "Write a compelling CTA button text for signing up for a newsletter"</li>
-              <li><strong>Product Description:</strong> "Rewrite this product description to highlight benefits instead of features"</li>
-            </ul>
           </div>
         </div>
       </main>
 
-      <footer className={styles.footer}>
-        <p>
-          Cursor AI-CRO Personalization Tool
-        </p>
+      <footer className="border-t border-gray-200 py-8 mt-12">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          <p>AI CRO - Element Selector Bookmarklet</p>
+        </div>
       </footer>
     </div>
   );

@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 bg-primary text-white rounded-md font-bold hover:bg-opacity-90 transition-colors;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+  
+  .card {
+    @apply p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .title {
+    @apply text-4xl font-bold text-center mb-8;
+  }
+  
+  .description {
+    @apply text-xl text-center text-gray-600 mb-8;
+  }
+} 
