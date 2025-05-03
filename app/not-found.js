@@ -11,9 +11,9 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Not Found</h2>
         <p className="text-gray-600 mb-4">
-          Could not find the requested page: {typeof window !== 'undefined' ? window.location.pathname : ''}
+          Could not find the requested resource: {typeof window !== 'undefined' ? window.location.pathname : ''}
         </p>
         <Link 
           href="/"
