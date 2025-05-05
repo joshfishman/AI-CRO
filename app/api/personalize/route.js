@@ -1,4 +1,17 @@
 export async function POST(request) {
+  // Set CORS headers to allow requests from any domain
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  // Handle OPTIONS preflight request
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers });
+  }
+
   try {
     const data = await request.json();
     const { url, selector, userId, originalContent, elementType, userAttributes = {} } = data;
@@ -9,22 +22,25 @@ export async function POST(request) {
     
     if (!testData) {
       // No test found for this element
-      return Response.json({ personalized: false });
+      return new Response(JSON.stringify({ personalized: false }), { headers });
     }
     
     // Get the appropriate variant for this user
     const variant = selectVariant(testData, userId, userAttributes);
     
     // Return the personalized content
-    return Response.json({
+    return new Response(JSON.stringify({
       personalized: true,
       testId: testData.id,
       variantId: variant.id,
       content: variant.content
-    });
+    }), { headers });
   } catch (error) {
     console.error('Error in personalize API:', error);
-    return Response.json({ error: 'Failed to personalize content' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Failed to personalize content' }), { 
+      status: 500,
+      headers
+    });
   }
 }
 

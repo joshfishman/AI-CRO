@@ -1,4 +1,17 @@
 export async function POST(request) {
+  // Set CORS headers to allow requests from any domain
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  // Handle OPTIONS preflight request
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers });
+  }
+
   try {
     const data = await request.json();
     const { testId, variantId, event, userId, metadata = {} } = data;
@@ -19,12 +32,15 @@ export async function POST(request) {
     // 2. Update conversion metrics for the test
     // 3. Check if the test has reached statistical significance
     
-    return Response.json({ 
+    return new Response(JSON.stringify({ 
       success: true,
       message: 'Event tracked successfully'
-    });
+    }), { headers });
   } catch (error) {
     console.error('Error in track API:', error);
-    return Response.json({ error: 'Failed to track event' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Failed to track event' }), { 
+      status: 500, 
+      headers 
+    });
   }
 } 

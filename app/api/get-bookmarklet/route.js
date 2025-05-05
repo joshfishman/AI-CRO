@@ -1,15 +1,15 @@
 export async function GET() {
-  // Host URL (for API requests)
-  const host = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000';
+  // Use absolute URL for production or fallback to localhost for development
+  const host = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   // Create the bookmarklet code that will be executed when clicked
   const bookmarkletScript = `
     (function() {
-      // Load the AI CRO client script from our server
+      // Load the AI CRO client script from our server with absolute URL
       var script = document.createElement('script');
-      script.src = '${host}/api/client-script';
+      script.src = 'https://ai-cro-three.vercel.app/api/client-script';
       script.onload = function() {
         // Initialize AICRO when script loads
         if (window.AICRO) {

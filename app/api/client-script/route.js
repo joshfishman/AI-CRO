@@ -1,8 +1,15 @@
-export async function GET() {
+export async function GET(request) {
+  // Set CORS headers to allow the script to be loaded from any domain
+  const headers = {
+    'Content-Type': 'application/javascript',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Cache-Control': 'max-age=3600'
+  };
+
   // Host URL (for API requests)
-  const host = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000';
+  const host = 'https://ai-cro-three.vercel.app';
 
   const clientScript = `
     (function() {
@@ -622,9 +629,5 @@ export async function GET() {
     })();
   `;
 
-  return new Response(clientScript, {
-    headers: {
-      'Content-Type': 'application/javascript'
-    }
-  });
+  return new Response(clientScript, { headers });
 } 
