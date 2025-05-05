@@ -134,6 +134,16 @@ export async function GET(request) {
           return this;
         }
         
+        // Always ensure autoDetection is disabled by default
+        if (!options.autoDetection || typeof options.autoDetection !== 'object') {
+          options.autoDetection = { enabled: false };
+        }
+        
+        // Only enable if explicitly requested
+        if (options.autoDetection.enabled !== true) {
+          options.autoDetection.enabled = false;
+        }
+        
         // Merge options with defaults
         Object.assign(config, options);
         
@@ -159,118 +169,130 @@ export async function GET(request) {
       
       // Apply personalized content to a specific element
       AICRO.personalize = function(selector, options = {}) {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length === 0) {
-          log("No elements found for selector:", selector);
-          return this;
-        }
-        
-        log("Personalizing elements:", elements);
-        
-        // Get current URL
-        const url = window.location.href;
-        
-        // Request personalized content from the API
-        fetch(\`\${config.apiHost}/api/personalize\`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          mode: 'cors',
-          credentials: 'omit',
-          body: JSON.stringify({
-            url,
-            selector,
-            userId: config.userId,
-            originalContent: elements[0].innerHTML,
-            elementType: elements[0].tagName.toLowerCase(),
-            userAttributes: options.attributes || {},
-            skipAutoPersonalization: options.skipAutoPersonalization !== false // Skip by default unless explicitly set to false
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.personalized) {
-            log("Received personalized content:", data);
-            
-            // Store test data for tracking
-            config.testData[selector] = {
-              testId: data.testId,
-              variantId: data.variantId
-            };
-            
-            // Apply content to all matching elements
-            elements.forEach(element => {
-              // Preserve element attributes when updating content
-              if (typeof data.content === 'string' && !data.content.trim().startsWith('<')) {
-                // For text-only content, preserve the existing HTML structure
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = element.innerHTML;
-                
-                // Find all text nodes and replace their content
-                const textNodes = [];
-                const findTextNodes = function(node) {
-                  if (node.nodeType === 3) { // Text node
-                    textNodes.push(node);
-                  } else if (node.nodeType === 1) { // Element node
-                    for (let i = 0; i < node.childNodes.length; i++) {
-                      findTextNodes(node.childNodes[i]);
-                    }
-                  }
-                };
-                
-                findTextNodes(tempDiv);
-                
-                // Replace the first text node content
-                if (textNodes.length > 0) {
-                  textNodes[0].nodeValue = data.content;
-                  element.innerHTML = tempDiv.innerHTML;
-                } else {
-                  // If no text nodes, just set inner text preserving the wrapper
-                  const wrapper = element.cloneNode(false);
-                  wrapper.textContent = data.content;
-                  element.parentNode.replaceChild(wrapper, element);
-                }
-              } else {
-                // For HTML content, try to preserve the element's attributes
-                const originalAttributes = {};
-                for (let i = 0; i < element.attributes.length; i++) {
-                  const attr = element.attributes[i];
-                  originalAttributes[attr.name] = attr.value;
-                }
-                
-                // Update the inner HTML
-                element.innerHTML = data.content;
-                
-                // Apply the original attributes back to the root element
-                if (element.tagName.toLowerCase() === 'div' || 
-                    element.tagName.toLowerCase() === 'span') {
-                  // Only restore attributes that don't conflict with the new content
-                  for (const [name, value] of Object.entries(originalAttributes)) {
-                    // Skip data-aicro attributes
-                    if (name.startsWith('data-aicro')) continue;
-                    
-                    // Don't override existing attributes in the new content
-                    if (!element.hasAttribute(name)) {
-                      element.setAttribute(name, value);
-                    }
-                  }
-                }
-              }
-              
-              // Mark element as personalized
-              element.setAttribute('data-aicro-personalized', 'true');
-              
-              // Track impression
-              trackEvent('impression', selector);
-            });
-          } else {
-            log("No personalization available for:", selector);
+        try {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length === 0) {
+            log("No elements found for selector:", selector);
+            return this;
           }
-        })
-        .catch(error => {
-          console.error("[AI CRO] Error fetching personalized content:", error);
-        });
+          
+          // Filter out bookmarklet UI elements
+          const validElements = Array.from(elements).filter(element => !isBookmarkletUiElement(element));
+          
+          if (validElements.length === 0) {
+            log("All matched elements are part of the bookmarklet UI, skipping personalization for:", selector);
+            return this;
+          }
+          
+          log("Personalizing elements:", validElements);
+          
+          // Get current URL
+          const url = window.location.href;
+          
+          // Request personalized content from the API
+          fetch(\`\${config.apiHost}/api/personalize\`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit',
+            body: JSON.stringify({
+              url,
+              selector,
+              userId: config.userId,
+              originalContent: validElements[0].innerHTML,
+              elementType: validElements[0].tagName.toLowerCase(),
+              userAttributes: options.attributes || {},
+              skipAutoPersonalization: options.skipAutoPersonalization !== false // Skip by default unless explicitly set to false
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.personalized) {
+              log("Received personalized content:", data);
+              
+              // Store test data for tracking
+              config.testData[selector] = {
+                testId: data.testId,
+                variantId: data.variantId
+              };
+              
+              // Apply content to all matching elements
+              validElements.forEach(element => {
+                // Preserve element attributes when updating content
+                if (typeof data.content === 'string' && !data.content.trim().startsWith('<')) {
+                  // For text-only content, preserve the existing HTML structure
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = element.innerHTML;
+                  
+                  // Find all text nodes and replace their content
+                  const textNodes = [];
+                  const findTextNodes = function(node) {
+                    if (node.nodeType === 3) { // Text node
+                      textNodes.push(node);
+                    } else if (node.nodeType === 1) { // Element node
+                      for (let i = 0; i < node.childNodes.length; i++) {
+                        findTextNodes(node.childNodes[i]);
+                      }
+                    }
+                  };
+                  
+                  findTextNodes(tempDiv);
+                  
+                  // Replace the first text node content
+                  if (textNodes.length > 0) {
+                    textNodes[0].nodeValue = data.content;
+                    element.innerHTML = tempDiv.innerHTML;
+                  } else {
+                    // If no text nodes, just set inner text preserving the wrapper
+                    const wrapper = element.cloneNode(false);
+                    wrapper.textContent = data.content;
+                    element.parentNode.replaceChild(wrapper, element);
+                  }
+                } else {
+                  // For HTML content, try to preserve the element's attributes
+                  const originalAttributes = {};
+                  for (let i = 0; i < element.attributes.length; i++) {
+                    const attr = element.attributes[i];
+                    originalAttributes[attr.name] = attr.value;
+                  }
+                  
+                  // Update the inner HTML
+                  element.innerHTML = data.content;
+                  
+                  // Apply the original attributes back to the root element
+                  if (element.tagName.toLowerCase() === 'div' || 
+                      element.tagName.toLowerCase() === 'span') {
+                    // Only restore attributes that don't conflict with the new content
+                    for (const [name, value] of Object.entries(originalAttributes)) {
+                      // Skip data-aicro attributes
+                      if (name.startsWith('data-aicro')) continue;
+                      
+                      // Don't override existing attributes in the new content
+                      if (!element.hasAttribute(name)) {
+                        element.setAttribute(name, value);
+                      }
+                    }
+                  }
+                }
+                
+                // Mark element as personalized
+                element.setAttribute('data-aicro-personalized', 'true');
+                
+                // Track impression
+                trackEvent('impression', selector);
+              });
+            } else {
+              log("No personalization available for:", selector);
+            }
+          })
+          .catch(error => {
+            console.error("[AI CRO] Error fetching personalized content:", error);
+          });
+        } catch (e) {
+          console.error("[AI CRO] Error in personalize:", e);
+        }
         
         return this;
       };
@@ -464,11 +486,48 @@ export async function GET(request) {
           return;
         }
         
+        // Skip standalone bookmarklet UI elements
+        if (isBookmarkletUiElement(element)) {
+          return;
+        }
+        
         // Check if the element matches any important element criteria
         if (isImportantElement(element)) {
           const selector = getUniqueSelector(element);
           // Skip auto-personalization for dynamically detected elements
           AICRO.personalize(selector, { skipAutoPersonalization: true });
+        }
+      }
+      
+      // Check if an element is part of the bookmarklet UI
+      function isBookmarkletUiElement(element) {
+        try {
+          // Check if element has aicro-* class
+          if (element.className && typeof element.className === 'string' && 
+              /aicro-/.test(element.className)) {
+            return true;
+          }
+          
+          // Check for parents with aicro-* class
+          let parent = element.parentElement;
+          while (parent) {
+            if (parent.className && typeof parent.className === 'string' && 
+                /aicro-/.test(parent.className)) {
+              return true;
+            }
+            parent = parent.parentElement;
+          }
+          
+          // Also check for the selector UI element
+          if (document.querySelector('.aicro-selector-ui') && 
+              document.querySelector('.aicro-selector-ui').contains(element)) {
+            return true;
+          }
+          
+          return false;
+        } catch (e) {
+          console.error("[AI CRO] Error in isBookmarkletUiElement:", e);
+          return false;
         }
       }
       
@@ -536,6 +595,11 @@ export async function GET(request) {
       // Check if element is important for personalization
       function isImportantElement(element) {
         if (!isVisibleElement(element)) return false;
+        
+        // Skip bookmarklet UI elements
+        if (isBookmarkletUiElement(element)) {
+          return false;
+        }
         
         const tagName = element.tagName.toLowerCase();
         
