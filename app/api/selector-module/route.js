@@ -1,22 +1,30 @@
 export async function OPTIONS(request) {
+  // Get the origin from the request
+  const origin = request.headers.get('origin') || '*';
+  
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400'
     }
   });
 }
 
 export async function GET(request) {
+  // Get the origin from the request
+  const origin = request.headers.get('origin') || '*';
+  
   // Set CORS headers to allow the script to be loaded from any domain
   const headers = {
     'Content-Type': 'application/javascript',
-    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Origin': origin, 
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
     'Cache-Control': 'max-age=3600'
   };
 

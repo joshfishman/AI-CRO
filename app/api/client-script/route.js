@@ -1,27 +1,37 @@
 export async function OPTIONS(request) {
+  // Get the origin from the request
+  const origin = request.headers.get('origin') || '*';
+  
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400'
     }
   });
 }
 
 export async function GET(request) {
+  // Get the origin from the request
+  const origin = request.headers.get('origin') || '*';
+  
   // Set CORS headers to allow the script to be loaded from any domain
   const headers = {
     'Content-Type': 'application/javascript',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
     'Cache-Control': 'max-age=3600'
   };
 
   // Host URL (for API requests)
-  const host = 'https://ai-cro-three.vercel.app';
+  const host = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-cro-three.vercel.app';
 
   const clientScript = `
     (function() {
@@ -40,7 +50,7 @@ export async function GET(request) {
           dataLayerName: 'dataLayer'
         },
         autoDetection: {
-          enabled: true,
+          enabled: false,
           headings: true,
           buttons: true,
           images: false,
@@ -580,11 +590,22 @@ export async function GET(request) {
         const rect = element.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         
+        // Get class names safely
+        let classNames = '';
+        if (element.className) {
+          if (typeof element.className === 'string') {
+            classNames = element.className.toLowerCase();
+          } else if (element.className.baseVal) {
+            // For SVG elements className is an SVGAnimatedString with baseVal
+            classNames = element.className.baseVal.toLowerCase();
+          }
+        }
+        
         // Banners tend to be full-width or nearly full-width elements
         return rect.width > viewportWidth * 0.8 && 
                rect.height > 100 && 
-               element.className.toLowerCase().includes('banner') || 
-               element.className.toLowerCase().includes('hero');
+               (classNames.includes('banner') || 
+               classNames.includes('hero'));
       }
       
       // Check if element is visible
@@ -670,11 +691,15 @@ export async function GET(request) {
         
         // Load the selector module on demand
         const script = document.createElement('script');
-        script.src = "\${config.apiHost}/api/selector-module?cachebust=" + Date.now();
+        // Use absolute URL with the correct host
+        script.src = config.apiHost + "/api/selector-module?cachebust=" + Date.now();
         script.onload = function() {
           if (window.AICRO.selector && typeof window.AICRO.selector.start === 'function') {
             window.AICRO.selector.start(options);
           }
+        };
+        script.onerror = function(error) {
+          console.error("Error loading selector module:", error);
         };
         document.head.appendChild(script);
         
