@@ -7,7 +7,7 @@
 | Compute | Next.js App Router & Vercel Functions | `/api/personalize`, `/api/tests`, `/api/track`, `/api/segments`, `/api/client-script`. |
 | UI Framework | React with Tailwind CSS | Component library for clean, responsive design. |
 | State Management | tRPC & React Query | Type-safe API calls and client-side caching. |
-| Selector UI | Bookmarklet → injected UI | Element selector tool that works on any website. |
+| Selector UI | Bookmarklet → injected UI | Enhanced visual element selector with audience targeting. |
 | Client Integration | JavaScript library | Small JS loader for any website to integrate AI CRO features. |
 | Analytics | Google Tag Manager + first-party events | Dual tracking approach with custom event API. |
 
@@ -29,9 +29,15 @@
 |------|-------|--------|-------|
 | Bookmarklet loader | Frontend | ✅ | Injects element selector tool |
 | Element selection | Frontend | ✅ | Auto-generates unique selectors |
-| Selector preview | Frontend | ⏳ | Shows targeted elements with visual indicators |
-| Configuration panel | Frontend | ⏳ | Interface for creating tests and variants |
+| Selector preview | Frontend | ✅ | Shows targeted elements with visual indicators |
+| Configuration panel | Frontend | ✅ | Interface for creating tests and variants |
 | Save configuration | Frontend | ⏳ | Push to `/api/tests` with auth |
+| Auto-selection | Frontend | ✅ | Smart detection of important elements |
+| Page-level targeting | Frontend | ✅ | Audience and intent configuration for all elements |
+| Multi-select | Frontend | 🆕 | Select multiple elements at once |
+| Selection groups | Frontend | 🆕 | Group related elements for consistent personalization |
+| Selection templates | Frontend | 🆕 | Reusable selection patterns for common page elements |
+| Advanced targeting UI | Frontend | 🆕 | Enhanced interface for audience segmentation |
 
 ### 2.3 Runtime Loader
 | Task | Owner | Status | Notes |
@@ -42,6 +48,7 @@
 | Event tracking | Frontend | ✅ | Track impressions and conversions |
 | Timeout handling | Frontend | ⏳ | Prevent layout shifts with dynamic timeouts |
 | User identification | Frontend | ✅ | Support for custom user IDs and attributes |
+| Mutation observer | Frontend | ✅ | Monitor DOM changes for dynamic content |
 
 ### 2.4 Analytics & Testing
 | Task | Owner | Status | Notes |
@@ -60,7 +67,9 @@
 | Segment management | Frontend | ⏳ | Define user segments for targeting |
 | Results & analytics | Frontend | ⏳ | Visualization of test performance |
 | User management | Frontend | ⏳ | Role-based access control |
-| Bookmarklet generator | Frontend | ⏳ | Create and manage bookmarklets |
+| Bookmarklet generator | Frontend | ✅ | Create and manage bookmarklets |
+| Variant management | Frontend | 🆕 | Interface for managing content variations |
+| Template library | Frontend | 🆕 | Reusable audience and intent templates |
 
 ### 2.6 Google Tag Manager Integration
 | Task | Owner | Status | Notes |
@@ -80,6 +89,7 @@
 | Script tag installation | Documentation | ⏳ | Guide for adding client script to any website |
 | CSS selector guide | Documentation | ⏳ | Best practices for robust element selection |
 | Custom events guide | Documentation | ⏳ | How to track custom events and conversions |
+| Selection guide | Documentation | 🆕 | Instructions for using the enhanced selector |
 
 #### eCommerce Platforms
 | Task | Owner | Status | Notes |
@@ -87,16 +97,20 @@
 | Shopify integration | Frontend | ⏳ | App or script tag for Shopify stores |
 | WooCommerce plugin | Frontend | ⏳ | WordPress plugin for WooCommerce |
 | Standard checkout events | Frontend | ⏳ | Track add-to-cart, checkout, purchase |
+| Platform element presets | Frontend | 🆕 | Pre-configured selections for platform-specific elements |
 
 ## 3 ‒ Project Timeline
 
-### Phase 1: Core API & Selector (Current)
+### Phase 1: Core API & Selector (Completed)
 - Complete core API endpoints
 - Finish bookmarklet implementation
 - Develop client-side script
 - Create basic admin interface
 
-### Phase 2: Testing & Analysis
+### Phase 2: Enhanced Selection & Testing (Current)
+- Improve element selection experience
+- Add multi-select and grouping capabilities
+- Enhance audience targeting UI
 - Implement statistical analysis
 - Add Google Tag Manager integration
 - Develop results visualization
@@ -107,3 +121,4 @@
 - Develop advanced targeting capabilities
 - Implement AI-powered variant generation
 - Add multi-user collaboration features
+- Create platform-specific element presets

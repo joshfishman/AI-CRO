@@ -883,15 +883,15 @@ export async function GET(request) {
         },
         
         // Toggle element selection
-        _toggleElementSelection: function(element) {
+        _toggleElementSelection: function(element, forceSelect = false) {
           // Check if already selected
           const index = this.selectedElements.findIndex(e => e.element === element);
           
-          if (index > -1) {
+          if (index > -1 && !forceSelect) {
             // Remove selection
             element.classList.remove('aicro-selected');
             this.selectedElements.splice(index, 1);
-          } else {
+          } else if (index === -1) {
             // Add selection
             element.classList.add('aicro-selected');
             element.classList.remove('aicro-highlight');
@@ -1043,54 +1043,219 @@ export async function GET(request) {
           });
         },
         
-        // Auto-select important elements on the page
+        // Auto-select important elements on the page with enhanced capabilities
         _autoSelectElements: function() {
           // Clear current selections
           this._clearSelectedElements();
           
-          // Find important elements
+          // Find important elements by type
           const headings = Array.from(document.querySelectorAll('h1, h2')).filter(el => this._isTargetableElement(el));
           const buttons = Array.from(document.querySelectorAll('button, a.btn, .button, .cta, a[class*="btn"]')).filter(el => this._isTargetableElement(el));
           const paragraphs = Array.from(document.querySelectorAll('p.lead, p.intro, p[class*="description"]')).filter(el => this._isTargetableElement(el));
+          const images = Array.from(document.querySelectorAll('img[class*="hero"], img[class*="banner"], img[role="banner"]')).filter(el => this._isTargetableElement(el));
+          const ctaForms = Array.from(document.querySelectorAll('form[class*="signup"], form[class*="newsletter"], form[id*="contact"]')).filter(el => this._isTargetableElement(el));
           
-          // Select the most important elements (limit to prevent overload)
-          const elementsToSelect = [];
+          // Group elements by type for UI organization
+          const groups = {
+            'Headings': headings,
+            'Buttons': buttons,
+            'Paragraphs': paragraphs,
+            'Images': images,
+            'Forms': ctaForms
+          };
           
-          // Add main heading
-          if (headings.length > 0) {
-            elementsToSelect.push(headings[0]);
+          // Show selection dialog with grouped elements
+          this._showGroupSelectionDialog(groups);
+        },
+        
+        // Show a dialog with grouped elements for selection
+        _showGroupSelectionDialog: function(groups) {
+          // Create the dialog
+          const dialog = document.createElement('div');
+          dialog.id = 'aicro-group-selection';
+          dialog.style.position = 'fixed';
+          dialog.style.top = '50%';
+          dialog.style.left = '50%';
+          dialog.style.transform = 'translate(-50%, -50%)';
+          dialog.style.width = '600px';
+          dialog.style.maxHeight = '80vh';
+          dialog.style.backgroundColor = 'white';
+          dialog.style.borderRadius = '8px';
+          dialog.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+          dialog.style.zIndex = '999999';
+          dialog.style.fontFamily = 'Arial, sans-serif';
+          dialog.style.fontSize = '14px';
+          dialog.style.color = '#333';
+          dialog.style.padding = '24px';
+          dialog.style.overflowY = 'auto';
+          
+          // Create dialog content
+          let dialogContent = "";
+          
+          // Add header
+          dialogContent += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+          dialogContent += '<h3 style="margin:0;font-size:18px;font-weight:600;">Select Elements by Type</h3>';
+          dialogContent += '<button id="aicro-close-group-dialog" style="background:none;border:none;cursor:pointer;color:#999;font-size:18px;">×</button>';
+          dialogContent += '</div>';
+          dialogContent += '<p style="margin-bottom:16px;color:#666;">Choose elements to personalize or use "Select All" for entire groups.</p>';
+          
+          // Create groups section
+          for (const [groupName, elements] of Object.entries(groups)) {
+            if (elements.length === 0) continue;
             
-            // Add secondary headings (max 2)
-            if (headings.length > 1) {
-              elementsToSelect.push(headings[1]);
-            }
-          }
-          
-          // Add primary CTA buttons (max 2)
-          if (buttons.length > 0) {
-            elementsToSelect.push(buttons[0]);
+            // Add group header
+            dialogContent += '<div style="margin-bottom:24px;border:1px solid #eee;border-radius:6px;overflow:hidden;">';
+            dialogContent += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f9f9f9;border-bottom:1px solid #eee;">';
+            dialogContent += '<h4 style="margin:0;font-size:16px;color:#333;">' + groupName + ' (' + elements.length + ')</h4>';
+            dialogContent += '<label style="display:flex;align-items:center;cursor:pointer;">';
+            dialogContent += '<input type="checkbox" class="aicro-group-select" data-group="' + groupName + '" style="margin-right:6px;">';
+            dialogContent += '<span>Select All</span>';
+            dialogContent += '</label>';
+            dialogContent += '</div>';
+            dialogContent += '<div style="max-height:200px;overflow-y:auto;padding:12px;">';
             
-            if (buttons.length > 1) {
-              elementsToSelect.push(buttons[1]);
-            }
+            // Add elements to the group
+            elements.forEach((element, index) => {
+              // Get a preview of the element's content
+              let content = element.textContent.trim();
+              if (content.length > 40) {
+                content = content.substring(0, 37) + '...';
+              }
+              
+              // For images, show alt text or src
+              if (element.tagName.toLowerCase() === 'img') {
+                content = element.alt || element.src.split('/').pop();
+              }
+              
+              // Add border-top style for all but the first element
+              const borderStyle = index > 0 ? 'border-top:1px solid #f0f0f0;' : '';
+              
+              dialogContent += '<div style="display:flex;align-items:center;padding:8px;' + borderStyle + '">';
+              dialogContent += '<label style="display:flex;align-items:center;cursor:pointer;flex:1;">';
+              dialogContent += '<input type="checkbox" class="aicro-element-select" data-group="' + groupName + '" data-index="' + index + '" style="margin-right:8px;">';
+              dialogContent += '<span style="font-size:13px;font-weight:500;">' + element.tagName.toLowerCase() + '</span>';
+              dialogContent += '<span style="margin-left:8px;font-size:12px;color:#666;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + content + '</span>';
+              dialogContent += '</label>';
+              dialogContent += '<button class="aicro-highlight-element" data-group="' + groupName + '" data-index="' + index + '" style="padding:2px 6px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Preview</button>';
+              dialogContent += '</div>';
+            });
+            
+            // Close the group containers
+            dialogContent += '</div>'; // Close inner div
+            dialogContent += '</div>'; // Close group div
           }
           
-          // Add key paragraphs (max 1)
-          if (paragraphs.length > 0) {
-            elementsToSelect.push(paragraphs[0]);
-          }
+          // Add action buttons
+          dialogContent += '<div style="display:flex;justify-content:space-between;margin-top:16px;">';
+          dialogContent += '<button id="aicro-cancel-selection" style="padding:8px 16px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;">Cancel</button>';
+          dialogContent += '<button id="aicro-apply-selection" style="padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Apply Selection</button>';
+          dialogContent += '</div>';
           
-          // Select all found elements
-          elementsToSelect.forEach(element => {
-            this._toggleElementSelection(element);
+          // Set dialog content
+          dialog.innerHTML = dialogContent;
+          
+          // Add dialog to page
+          document.body.appendChild(dialog);
+          
+          // Add event listeners
+          document.getElementById('aicro-close-group-dialog').addEventListener('click', () => {
+            document.body.removeChild(dialog);
           });
           
-          // Show notification
-          if (elementsToSelect.length > 0) {
-            log("Auto-selected", elementsToSelect.length, "elements");
-          } else {
-            alert("No key elements detected for auto-selection. Please select elements manually.");
-          }
+          document.getElementById('aicro-cancel-selection').addEventListener('click', () => {
+            document.body.removeChild(dialog);
+          });
+          
+          // Group select all checkboxes
+          const groupCheckboxes = dialog.querySelectorAll('.aicro-group-select');
+          groupCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+              const group = e.target.dataset.group;
+              const isChecked = e.target.checked;
+              
+              // Select/deselect all elements in the group
+              dialog.querySelectorAll(`.aicro-element-select[data-group="${group}"]`).forEach(cb => {
+                cb.checked = isChecked;
+              });
+            });
+          });
+          
+          // Element highlight buttons
+          const highlightButtons = dialog.querySelectorAll('.aicro-highlight-element');
+          highlightButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+              const group = e.target.dataset.group;
+              const index = parseInt(e.target.dataset.index);
+              
+              // Temporarily highlight the element
+              const element = groups[group][index];
+              this._previewElement(element);
+            });
+          });
+          
+          // Apply selection button
+          document.getElementById('aicro-apply-selection').addEventListener('click', () => {
+            // Collect all selected elements
+            const selectedElements = [];
+            
+            for (const [groupName, elements] of Object.entries(groups)) {
+              const checkboxes = dialog.querySelectorAll(`.aicro-element-select[data-group="${groupName}"]`);
+              
+              checkboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) {
+                  selectedElements.push(elements[index]);
+                }
+              });
+            }
+            
+            // Select all elements
+            selectedElements.forEach(element => {
+              this._toggleElementSelection(element, true);
+            });
+            
+            // Remove dialog
+            document.body.removeChild(dialog);
+            
+            // Show confirmation
+            if (selectedElements.length > 0) {
+              log("Selected", selectedElements.length, "elements");
+            } else {
+              alert("No elements selected. Please select at least one element to personalize.");
+            }
+          });
+        },
+        
+        // Temporarily highlight an element to preview it
+        _previewElement: function(element) {
+          // Create highlight overlay
+          const rect = element.getBoundingClientRect();
+          const overlay = document.createElement('div');
+          
+          overlay.style.position = 'fixed';
+          overlay.style.top = rect.top + 'px';
+          overlay.style.left = rect.left + 'px';
+          overlay.style.width = rect.width + 'px';
+          overlay.style.height = rect.height + 'px';
+          overlay.style.border = '3px solid #4CAF50';
+          overlay.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+          overlay.style.zIndex = '99999';
+          overlay.style.pointerEvents = 'none';
+          overlay.style.transition = 'opacity 0.3s';
+          
+          document.body.appendChild(overlay);
+          
+          // Scroll element into view if needed
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Remove highlight after a short delay
+          setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+              if (overlay.parentNode) {
+                document.body.removeChild(overlay);
+              }
+            }, 300);
+          }, 1500);
         }
       };
       
