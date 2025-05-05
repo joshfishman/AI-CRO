@@ -159,7 +159,7 @@ export async function GET(request) {
           
           <div class="aicro-selector-content">
             <p style="margin-top:0;margin-bottom:12px;color:#6b7280;">
-              Click on elements to select them for personalization.
+              Click on elements to select them for testing.
             </p>
             
             <div class="aicro-tools">
@@ -340,6 +340,7 @@ export async function GET(request) {
           element.classList.add('aicro-selected');
           element.classList.remove('aicro-highlight');
           
+          // Don't modify content, just track the original content
           selectedElements.push({
             element: element,
             selector: generateUniqueSelector(element),
@@ -382,7 +383,10 @@ export async function GET(request) {
               <div style="font-weight:500;">\${item.type}</div>
               <div style="font-size:12px;color:#6b7280;">\${displayText}</div>
             </div>
-            <button class="aicro-remove-element" data-index="\${i}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;">×</button>
+            <div style="display:flex;align-items:center;">
+              <button class="aicro-generate-options" data-index="\${i}" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:12px;margin-right:8px;">Options</button>
+              <button class="aicro-remove-element" data-index="\${i}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;">×</button>
+            </div>
           \`;
           
           listEl.appendChild(el);
@@ -399,6 +403,257 @@ export async function GET(request) {
             }
           });
         });
+        
+        // Add generate options button handlers
+        document.querySelectorAll('.aicro-generate-options').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            if (selectedElements[index]) {
+              showTextOptionsDialog(selectedElements[index], index);
+            }
+          });
+        });
+      }
+      
+      // Show text options dialog for an element
+      function showTextOptionsDialog(item, index) {
+        // Create modal dialog for text options
+        const modalOverlay = document.createElement('div');
+        modalOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center;';
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = 'background:white;border-radius:8px;width:500px;max-width:90%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+        
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = 'padding:16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;';
+        header.innerHTML = \`
+          <h3 style="margin:0;font-size:16px;font-weight:600;">Generate Text Options</h3>
+          <button class="aicro-modal-close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;">×</button>
+        \`;
+        
+        // Content
+        const content = document.createElement('div');
+        content.style.cssText = 'padding:16px;overflow-y:auto;flex:1;';
+        
+        // Original text
+        const originalTextSection = document.createElement('div');
+        originalTextSection.style.cssText = 'margin-bottom:16px;';
+        originalTextSection.innerHTML = \`
+          <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Original Text</label>
+          <div style="padding:12px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;margin-bottom:16px;white-space:pre-wrap;font-family:inherit;">\${item.text}</div>
+          
+          <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Generation Prompt</label>
+          <textarea id="aicro-generation-prompt" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:4px;font-family:inherit;resize:vertical;min-height:80px;margin-bottom:16px;" placeholder="Describe how you want to modify this text...">Generate 3 alternative versions of this text that are more persuasive and action-oriented.</textarea>
+          
+          <div style="text-align:center;margin-bottom:16px;">
+            <button id="aicro-generate-text-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;">Generate Options</button>
+          </div>
+          
+          <div id="aicro-generation-status" style="text-align:center;margin-bottom:16px;color:#6b7280;display:none;">
+            Generating options...
+          </div>
+          
+          <div id="aicro-generated-options" style="display:none;">
+            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Generated Options</label>
+            <div id="aicro-options-container"></div>
+          </div>
+        \`;
+        
+        content.appendChild(originalTextSection);
+        
+        // Footer
+        const footer = document.createElement('div');
+        footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;';
+        footer.innerHTML = \`
+          <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;">Cancel</button>
+          <button id="aicro-save-option-btn" class="aicro-btn aicro-btn-primary" disabled>Save Selection</button>
+        \`;
+        
+        // Assemble modal
+        modal.appendChild(header);
+        modal.appendChild(content);
+        modal.appendChild(footer);
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
+        
+        // Selected option
+        let selectedOption = null;
+        
+        // Add event listeners
+        document.querySelector('.aicro-modal-close').addEventListener('click', () => {
+          document.body.removeChild(modalOverlay);
+        });
+        
+        document.querySelector('.aicro-modal-cancel').addEventListener('click', () => {
+          document.body.removeChild(modalOverlay);
+        });
+        
+        document.getElementById('aicro-generate-text-btn').addEventListener('click', () => {
+          generateTextOptions(item, index);
+        });
+        
+        document.getElementById('aicro-save-option-btn').addEventListener('click', () => {
+          if (selectedOption) {
+            // Add the option to the item data
+            if (!item.alternativeOptions) {
+              item.alternativeOptions = [];
+            }
+            
+            // Only add if not already present
+            if (!item.alternativeOptions.includes(selectedOption)) {
+              item.alternativeOptions.push(selectedOption);
+            }
+            
+            // Set as selected option
+            item.selectedOption = selectedOption;
+            
+            document.body.removeChild(modalOverlay);
+          }
+        });
+        
+        // Function to generate text options
+        function generateTextOptions(item, index) {
+          const prompt = document.getElementById('aicro-generation-prompt').value;
+          const statusEl = document.getElementById('aicro-generation-status');
+          const optionsContainer = document.getElementById('aicro-options-container');
+          const generatedOptionsSection = document.getElementById('aicro-generated-options');
+          
+          // Show loading status
+          statusEl.style.display = 'block';
+          generatedOptionsSection.style.display = 'none';
+          
+          // Get audience and intent values for context
+          const audience = document.getElementById('aicro-audience').value;
+          const intent = document.getElementById('aicro-intent').value;
+          
+          // Prepare API request data
+          const requestData = {
+            originalText: item.text,
+            prompt: prompt,
+            elementType: item.type,
+            audience: audience,
+            intent: intent,
+            url: window.location.href
+          };
+          
+          // Call the API to generate text options
+          fetch('${host}/api/generate-text-options', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Hide loading status
+            statusEl.style.display = 'none';
+            generatedOptionsSection.style.display = 'block';
+            
+            if (data.success && data.options && data.options.length > 0) {
+              // Add options to container
+              optionsContainer.innerHTML = '';
+              data.options.forEach((option, i) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'aicro-text-option';
+                optionEl.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;';
+                optionEl.dataset.option = option;
+                optionEl.innerHTML = \`
+                  <div style="display:flex;align-items:flex-start;">
+                    <div style="margin-right:8px;">
+                      <input type="radio" name="text-option" id="option-\${i}" style="margin-top:3px;">
+                    </div>
+                    <div>
+                      <label for="option-\${i}" style="cursor:pointer;">\${option}</label>
+                    </div>
+                  </div>
+                \`;
+                
+                optionsContainer.appendChild(optionEl);
+                
+                // Add click handler
+                optionEl.addEventListener('click', () => {
+                  // Deselect all options
+                  document.querySelectorAll('.aicro-text-option').forEach(el => {
+                    el.style.borderColor = '#d1d5db';
+                    el.style.background = 'white';
+                    el.querySelector('input').checked = false;
+                  });
+                  
+                  // Select this option
+                  optionEl.style.borderColor = '#3b82f6';
+                  optionEl.style.background = '#f0f7ff';
+                  optionEl.querySelector('input').checked = true;
+                  
+                  // Update selected option
+                  selectedOption = option;
+                  
+                  // Enable save button
+                  document.getElementById('aicro-save-option-btn').disabled = false;
+                });
+              });
+            } else {
+              // Show error message
+              optionsContainer.innerHTML = '<div style="color:#ef4444;text-align:center;padding:12px;">Failed to generate options. Please try again.</div>';
+            }
+            
+            // Add custom option input
+            const customOption = document.createElement('div');
+            customOption.className = 'aicro-text-option';
+            customOption.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;';
+            customOption.innerHTML = \`
+              <div style="display:flex;align-items:flex-start;">
+                <div style="margin-right:8px;">
+                  <input type="radio" name="text-option" id="option-custom" style="margin-top:3px;">
+                </div>
+                <div style="flex-grow:1;">
+                  <label for="option-custom" style="display:block;margin-bottom:4px;cursor:pointer;">Custom Option</label>
+                  <textarea id="aicro-custom-option" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;" placeholder="Write your own alternative..."></textarea>
+                </div>
+              </div>
+            \`;
+            
+            optionsContainer.appendChild(customOption);
+            
+            // Add event listener for custom option
+            customOption.addEventListener('click', () => {
+              // Deselect all options
+              document.querySelectorAll('.aicro-text-option').forEach(el => {
+                el.style.borderColor = '#d1d5db';
+                el.style.background = 'white';
+                el.querySelector('input').checked = false;
+              });
+              
+              // Select custom option
+              customOption.style.borderColor = '#3b82f6';
+              customOption.style.background = '#f0f7ff';
+              customOption.querySelector('input').checked = true;
+              
+              // Focus textarea
+              document.getElementById('aicro-custom-option').focus();
+            });
+            
+            // Update selected option when custom text changes
+            document.getElementById('aicro-custom-option').addEventListener('input', (e) => {
+              selectedOption = e.target.value;
+              
+              // Enable save button if there's text
+              document.getElementById('aicro-save-option-btn').disabled = !selectedOption || selectedOption.trim() === '';
+              
+              // Ensure radio is selected
+              customOption.querySelector('input').checked = true;
+              customOption.style.borderColor = '#3b82f6';
+              customOption.style.background = '#f0f7ff';
+            });
+          })
+          .catch(error => {
+            console.error('Error generating text options:', error);
+            statusEl.style.display = 'none';
+            generatedOptionsSection.style.display = 'block';
+            optionsContainer.innerHTML = '<div style="color:#ef4444;text-align:center;padding:12px;">An error occurred. Please try again.</div>';
+          });
+        }
       }
       
       // Setup button event handlers
@@ -467,7 +722,9 @@ export async function GET(request) {
               selector: item.selector,
               type: item.type,
               text: item.text,
-              originalContent: item.originalContent
+              originalContent: item.originalContent,
+              alternativeOptions: item.alternativeOptions || [],
+              selectedOption: item.selectedOption || null
             }))
           };
           
