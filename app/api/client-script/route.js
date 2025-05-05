@@ -755,14 +755,25 @@ export async function GET(request) {
         // Load the selector module on demand
         const script = document.createElement('script');
         // Use absolute URL with the correct host
-        script.src = config.apiHost + "/api/selector-module?cachebust=" + Date.now();
+        const apiHost = config.apiHost;
+        if (!apiHost) {
+          console.error("[AI CRO] Error: API host not configured properly");
+          return this;
+        }
+        
+        const selectorUrl = apiHost + '/api/selector-module?cachebust=' + Date.now();
+        script.src = selectorUrl;
+        console.log("[AI CRO] Loading selector module from:", selectorUrl);
+        
         script.onload = function() {
           if (window.AICRO.selector && typeof window.AICRO.selector.start === 'function') {
             window.AICRO.selector.start(options);
+          } else {
+            console.error("[AI CRO] Selector module loaded but selector.start is not available");
           }
         };
         script.onerror = function(error) {
-          console.error("Error loading selector module:", error);
+          console.error("[AI CRO] Error loading selector module:", error);
         };
         document.head.appendChild(script);
         

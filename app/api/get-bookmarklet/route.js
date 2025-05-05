@@ -32,7 +32,7 @@ export async function GET(request) {
   // Use absolute URL for production or fallback to localhost for development
   const host = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    : process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-cro-three.vercel.app';
 
   // Create the bookmarklet code that will be executed when clicked
   const bookmarkletScript = `
@@ -43,16 +43,21 @@ export async function GET(request) {
         return;
       }
       
+      // Store the API host explicitly to avoid template literal issues
+      var apiHost = '${host}';
+      
       // Initialize the client script
       var script = document.createElement('script');
-      script.src = '${host}/api/client-script';
+      script.src = apiHost + '/api/client-script';
       script.onload = function() {
         // Initialize AICRO when script loads and start in selector mode
         if (window.AICRO) {
           window.AICRO
             .debug(true)
             .configureAutoDetection({ enabled: false }) // Disable auto-detection
-            .init()
+            .init({
+              apiHost: apiHost // Explicitly set the API host to ensure it's correct
+            })
             .startSelector();
           
           console.log('AI CRO initialized through bookmarklet with selector mode');
