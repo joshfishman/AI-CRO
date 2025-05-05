@@ -32,10 +32,10 @@ export async function GET() {
       var script = document.createElement('script');
       script.src = 'https://ai-cro-three.vercel.app/api/client-script';
       script.onload = function() {
-        // Initialize AICRO when script loads
+        // Initialize AICRO when script loads and start in selector mode
         if (window.AICRO) {
-          window.AICRO.debug(true).init();
-          console.log('AI CRO initialized through bookmarklet');
+          window.AICRO.debug(true).init().startSelector();
+          console.log('AI CRO initialized through bookmarklet with selector mode');
           
           // Create a small notification to show it's working
           var notice = document.createElement('div');
@@ -48,7 +48,7 @@ export async function GET() {
           notice.style.borderRadius = '4px';
           notice.style.zIndex = '9999';
           notice.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-          notice.textContent = 'AI CRO activated';
+          notice.textContent = 'AI CRO Selector activated';
           document.body.appendChild(notice);
           
           // Remove the notice after 3 seconds

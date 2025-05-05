@@ -48,7 +48,9 @@ export async function GET(request) {
           productDescriptions: true,
           banners: true
         },
-        autoPersonalizationRules: []
+        autoPersonalizationRules: [],
+        pageAudience: '',
+        pageIntent: ''
       };
       
       // Set user ID
@@ -641,6 +643,466 @@ export async function GET(request) {
           
           return AICRO;
         }
+      };
+      
+      // Selector mode UI
+      AICRO.selector = {
+        // State
+        active: false,
+        selectedElements: [],
+        audienceInfo: '',
+        intentInfo: '',
+        
+        // Start selector mode
+        start: function() {
+          if (this.active) return;
+          
+          this.active = true;
+          this.selectedElements = [];
+          
+          // Create the UI
+          this._createUI();
+          
+          // Highlight important elements on hover
+          this._setupElementHighlighting();
+          
+          log("Selector mode started");
+          return AICRO;
+        },
+        
+        // Stop selector mode
+        stop: function() {
+          if (!this.active) return;
+          
+          this.active = false;
+          
+          // Remove UI
+          const ui = document.getElementById('aicro-selector-ui');
+          if (ui) document.body.removeChild(ui);
+          
+          // Remove event listeners
+          document.removeEventListener('mouseover', this._hoverHandler);
+          document.removeEventListener('mouseout', this._hoverOutHandler);
+          document.removeEventListener('click', this._clickHandler);
+          
+          log("Selector mode stopped");
+          return AICRO;
+        },
+        
+        // Create the UI panel
+        _createUI: function() {
+          const ui = document.createElement('div');
+          ui.id = 'aicro-selector-ui';
+          ui.style.position = 'fixed';
+          ui.style.bottom = '20px';
+          ui.style.right = '20px';
+          ui.style.width = '350px';
+          ui.style.backgroundColor = 'white';
+          ui.style.borderRadius = '8px';
+          ui.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          ui.style.zIndex = '999999';
+          ui.style.fontFamily = 'Arial, sans-serif';
+          ui.style.fontSize = '14px';
+          ui.style.color = '#333';
+          ui.style.padding = '16px';
+          
+          // Create UI content
+          ui.innerHTML = \`
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h3 style="margin:0;font-size:16px;font-weight:600;">AI CRO Selector</h3>
+              <button id="aicro-close-btn" style="background:none;border:none;cursor:pointer;color:#999;font-size:18px;">×</button>
+            </div>
+            
+            <div style="background-color:#f5f8ff;border-radius:6px;padding:12px;margin-bottom:16px;border:1px solid #e0e8ff;">
+              <h4 style="margin:0 0 8px 0;font-size:15px;color:#2563eb;">Page-Level Personalization</h4>
+              
+              <div style="margin-bottom:12px;">
+                <label style="display:block;margin-bottom:4px;font-weight:500;">Target Audience</label>
+                <textarea id="aicro-audience" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:50px;" placeholder="Who is your target audience? (e.g., business professionals, parents, tech enthusiasts)"></textarea>
+              </div>
+              
+              <div style="margin-bottom:6px;">
+                <label style="display:block;margin-bottom:4px;font-weight:500;">Page Intent</label>
+                <textarea id="aicro-intent" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:50px;" placeholder="What's your goal? (e.g., drive sales, educate visitors, increase sign-ups)"></textarea>
+              </div>
+              
+              <p style="margin:8px 0 0;font-size:12px;color:#6b7280;font-style:italic;">These settings will influence all selected elements</p>
+            </div>
+            
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label style="font-weight:500;">Selected Elements (<span id="aicro-element-count">0</span>)</label>
+                <button id="aicro-auto-select-btn" style="padding:4px 8px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Auto Select</button>
+              </div>
+              <div id="aicro-elements-list" style="max-height:120px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px;background:#f9f9f9;"></div>
+              <p style="margin:6px 0 0;font-size:12px;color:#6b7280;">Click on elements to select them, or use Auto Select</p>
+            </div>
+            
+            <div style="display:flex;justify-content:space-between;">
+              <button id="aicro-clear-btn" style="padding:8px 12px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;">Clear All</button>
+              <button id="aicro-personalize-btn" style="padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Personalize Content</button>
+            </div>
+          \`;
+          
+          document.body.appendChild(ui);
+          
+          // Set up event listeners
+          document.getElementById('aicro-close-btn').addEventListener('click', () => this.stop());
+          document.getElementById('aicro-clear-btn').addEventListener('click', () => this._clearSelectedElements());
+          document.getElementById('aicro-personalize-btn').addEventListener('click', () => this._personalizeSelectedElements());
+          document.getElementById('aicro-audience').addEventListener('input', (e) => this.audienceInfo = e.target.value);
+          document.getElementById('aicro-intent').addEventListener('input', (e) => this.intentInfo = e.target.value);
+          document.getElementById('aicro-auto-select-btn').addEventListener('click', () => this._autoSelectElements());
+        },
+        
+        // Set up element highlighting
+        _setupElementHighlighting: function() {
+          // Store this for event handlers
+          const self = this;
+          
+          // Create hover style
+          const style = document.createElement('style');
+          style.id = 'aicro-highlight-style';
+          style.textContent = \`
+            .aicro-highlight {
+              outline: 2px dashed #4CAF50 !important;
+              outline-offset: 2px !important;
+              cursor: pointer !important;
+            }
+            .aicro-selected {
+              outline: 2px solid #2196F3 !important;
+              outline-offset: 2px !important;
+              background-color: rgba(33, 150, 243, 0.1) !important;
+            }
+          \`;
+          document.head.appendChild(style);
+          
+          // Define hover handler
+          this._hoverHandler = function(e) {
+            if (!self.active) return;
+            
+            // Don't highlight the UI itself
+            if (e.target.closest('#aicro-selector-ui')) return;
+            
+            // Only highlight specific elements
+            if (self._isTargetableElement(e.target)) {
+              e.target.classList.add('aicro-highlight');
+              
+              // Prevent bubbling
+              e.stopPropagation();
+            }
+          };
+          
+          // Define hover out handler
+          this._hoverOutHandler = function(e) {
+            if (!self.active) return;
+            
+            // Remove highlight class
+            if (e.target.classList && e.target.classList.contains('aicro-highlight')) {
+              e.target.classList.remove('aicro-highlight');
+            }
+          };
+          
+          // Define click handler
+          this._clickHandler = function(e) {
+            if (!self.active) return;
+            
+            // Don't select the UI itself
+            if (e.target.closest('#aicro-selector-ui')) return;
+            
+            // Only select targetable elements
+            if (self._isTargetableElement(e.target)) {
+              self._toggleElementSelection(e.target);
+              
+              // Prevent default action and bubbling
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          };
+          
+          // Add event listeners
+          document.addEventListener('mouseover', this._hoverHandler, true);
+          document.addEventListener('mouseout', this._hoverOutHandler, true);
+          document.addEventListener('click', this._clickHandler, true);
+        },
+        
+        // Check if an element is targetable for personalization
+        _isTargetableElement: function(element) {
+          // Skip basic elements
+          if (['html', 'body', 'script', 'style', 'meta', 'head'].includes(element.tagName.toLowerCase())) {
+            return false;
+          }
+          
+          // Skip tiny or hidden elements
+          if (element.offsetWidth < 10 || element.offsetHeight < 10) {
+            return false;
+          }
+          
+          // Skip elements with no content
+          if (element.textContent.trim() === '' && !element.querySelector('img')) {
+            return false;
+          }
+          
+          // Target specific elements
+          const tag = element.tagName.toLowerCase();
+          
+          // Headers, paragraphs, buttons, links
+          if (['h1', 'h2', 'h3', 'h4', 'h5', 'p', 'button', 'a'].includes(tag)) {
+            return true;
+          }
+          
+          // Divs with text or images
+          if (tag === 'div' && (element.textContent.trim() !== '' || element.querySelector('img'))) {
+            // But skip if it has too many children (probably a container)
+            if (element.children.length < 5) {
+              return true;
+            }
+          }
+          
+          // Images
+          if (tag === 'img') {
+            return true;
+          }
+          
+          // Input elements like buttons
+          if (tag === 'input' && ['button', 'submit'].includes(element.type)) {
+            return true;
+          }
+          
+          // Check for common classes that might indicate important elements
+          const classList = Array.from(element.classList || []);
+          if (classList.some(cls => 
+            ['btn', 'button', 'cta', 'hero', 'title', 'heading', 'banner'].some(keyword => 
+              cls.toLowerCase().includes(keyword)
+            )
+          )) {
+            return true;
+          }
+          
+          return false;
+        },
+        
+        // Toggle element selection
+        _toggleElementSelection: function(element) {
+          // Check if already selected
+          const index = this.selectedElements.findIndex(e => e.element === element);
+          
+          if (index > -1) {
+            // Remove selection
+            element.classList.remove('aicro-selected');
+            this.selectedElements.splice(index, 1);
+          } else {
+            // Add selection
+            element.classList.add('aicro-selected');
+            element.classList.remove('aicro-highlight');
+            
+            this.selectedElements.push({
+              element: element,
+              selector: getUniqueSelector(element),
+              originalContent: element.innerHTML,
+              type: element.tagName.toLowerCase()
+            });
+          }
+          
+          // Update UI
+          this._updateSelectedElementsList();
+        },
+        
+        // Update the selected elements list in the UI
+        _updateSelectedElementsList: function() {
+          const listEl = document.getElementById('aicro-elements-list');
+          const countEl = document.getElementById('aicro-element-count');
+          
+          if (!listEl || !countEl) return;
+          
+          // Update count
+          countEl.textContent = this.selectedElements.length;
+          
+          // Clear list
+          listEl.innerHTML = '';
+          
+          // Add elements to list
+          this.selectedElements.forEach((item, i) => {
+            const el = document.createElement('div');
+            el.style.padding = '4px 0';
+            el.style.borderBottom = i < this.selectedElements.length - 1 ? '1px solid #eee' : 'none';
+            el.style.display = 'flex';
+            el.style.justifyContent = 'space-between';
+            el.style.alignItems = 'center';
+            
+            // Truncate content for display
+            let content = item.element.textContent.trim();
+            if (content.length > 30) {
+              content = content.substring(0, 27) + '...';
+            }
+            
+            el.innerHTML = \`
+              <span style="font-size:12px;color:#666;">\${item.type.toUpperCase()}: \${content}</span>
+              <button class="aicro-remove-el" data-index="\${i}" style="background:none;border:none;color:#999;cursor:pointer;font-size:16px;">×</button>
+            \`;
+            
+            listEl.appendChild(el);
+          });
+          
+          // Add remove listeners
+          document.querySelectorAll('.aicro-remove-el').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const index = parseInt(e.target.dataset.index);
+              if (!isNaN(index) && index >= 0 && index < this.selectedElements.length) {
+                const item = this.selectedElements[index];
+                item.element.classList.remove('aicro-selected');
+                this.selectedElements.splice(index, 1);
+                this._updateSelectedElementsList();
+              }
+            });
+          });
+        },
+        
+        // Clear all selected elements
+        _clearSelectedElements: function() {
+          // Remove selected class from all elements
+          this.selectedElements.forEach(item => {
+            item.element.classList.remove('aicro-selected');
+          });
+          
+          // Clear array
+          this.selectedElements = [];
+          
+          // Update UI
+          this._updateSelectedElementsList();
+        },
+        
+        // Personalize selected elements
+        _personalizeSelectedElements: function() {
+          if (this.selectedElements.length === 0) {
+            alert('Please select at least one element to personalize.');
+            return;
+          }
+          
+          // Get audience and intent info from the UI
+          this.audienceInfo = document.getElementById('aicro-audience').value;
+          this.intentInfo = document.getElementById('aicro-intent').value;
+          
+          // Show loading state
+          const personalizeBtn = document.getElementById('aicro-personalize-btn');
+          const originalText = personalizeBtn.textContent;
+          personalizeBtn.textContent = 'Processing...';
+          personalizeBtn.disabled = true;
+          
+          // Store page-level audience and intent in the config
+          config.pageAudience = this.audienceInfo;
+          config.pageIntent = this.intentInfo;
+          
+          // Personalize each element with the same page-level audience and intent
+          const promises = this.selectedElements.map(item => {
+            return new Promise((resolve) => {
+              AICRO.personalize(item.selector, {
+                attributes: {
+                  pageAudience: this.audienceInfo,
+                  pageIntent: this.intentInfo
+                }
+              });
+              // Resolve after a short delay to avoid overloading
+              setTimeout(resolve, 100);
+            });
+          });
+          
+          // When all personalization requests are sent
+          Promise.all(promises).then(() => {
+            // Exit selector mode
+            this.stop();
+            
+            // Show success message
+            const notice = document.createElement('div');
+            notice.style.position = 'fixed';
+            notice.style.bottom = '20px';
+            notice.style.right = '20px';
+            notice.style.background = '#4CAF50';
+            notice.style.color = 'white';
+            notice.style.padding = '16px';
+            notice.style.borderRadius = '4px';
+            notice.style.zIndex = '9999';
+            notice.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            notice.innerHTML = \`
+              <div style="font-weight:bold;margin-bottom:4px;">Personalization in Progress</div>
+              <div>AI CRO is personalizing \${this.selectedElements.length} elements for your audience</div>
+            \`;
+            
+            document.body.appendChild(notice);
+            
+            // Remove notice after 5 seconds
+            setTimeout(() => {
+              notice.style.opacity = '0';
+              notice.style.transition = 'opacity 0.5s';
+              setTimeout(() => {
+                if (notice.parentNode) {
+                  document.body.removeChild(notice);
+                }
+              }, 500);
+            }, 5000);
+          });
+        },
+        
+        // Auto-select important elements on the page
+        _autoSelectElements: function() {
+          // Clear current selections
+          this._clearSelectedElements();
+          
+          // Find important elements
+          const headings = Array.from(document.querySelectorAll('h1, h2')).filter(el => this._isTargetableElement(el));
+          const buttons = Array.from(document.querySelectorAll('button, a.btn, .button, .cta, a[class*="btn"]')).filter(el => this._isTargetableElement(el));
+          const paragraphs = Array.from(document.querySelectorAll('p.lead, p.intro, p[class*="description"]')).filter(el => this._isTargetableElement(el));
+          
+          // Select the most important elements (limit to prevent overload)
+          const elementsToSelect = [];
+          
+          // Add main heading
+          if (headings.length > 0) {
+            elementsToSelect.push(headings[0]);
+            
+            // Add secondary headings (max 2)
+            if (headings.length > 1) {
+              elementsToSelect.push(headings[1]);
+            }
+          }
+          
+          // Add primary CTA buttons (max 2)
+          if (buttons.length > 0) {
+            elementsToSelect.push(buttons[0]);
+            
+            if (buttons.length > 1) {
+              elementsToSelect.push(buttons[1]);
+            }
+          }
+          
+          // Add key paragraphs (max 1)
+          if (paragraphs.length > 0) {
+            elementsToSelect.push(paragraphs[0]);
+          }
+          
+          // Select all found elements
+          elementsToSelect.forEach(element => {
+            this._toggleElementSelection(element);
+          });
+          
+          // Show notification
+          if (elementsToSelect.length > 0) {
+            log("Auto-selected", elementsToSelect.length, "elements");
+          } else {
+            alert("No key elements detected for auto-selection. Please select elements manually.");
+          }
+        }
+      };
+      
+      // Add commands to the bookmarklet
+      AICRO.startSelector = function() {
+        this.selector.start();
+        return this;
+      };
+      
+      AICRO.stopSelector = function() {
+        this.selector.stop();
+        return this;
       };
     })();
   `;

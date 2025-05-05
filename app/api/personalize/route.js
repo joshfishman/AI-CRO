@@ -21,11 +21,25 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    const { url, selector, userId, originalContent, elementType, userAttributes = {} } = data;
+    const { 
+      url, 
+      selector, 
+      userId, 
+      originalContent, 
+      elementType, 
+      userAttributes = {} 
+    } = data;
+    
+    // Extract page-level audience and intent information
+    const pageAudience = userAttributes.pageAudience || '';
+    const pageIntent = userAttributes.pageIntent || '';
+    
+    console.log('Personalizing with audience:', pageAudience);
+    console.log('Personalizing with intent:', pageIntent);
     
     // In a real implementation, this would query a database of tests
     // For now, we'll check if we have a matching test for this selector and URL
-    const testData = await getMatchingTest(url, selector, elementType, originalContent);
+    const testData = await getMatchingTest(url, selector, elementType, originalContent, pageAudience, pageIntent);
     
     if (!testData) {
       // No test found for this element
@@ -52,7 +66,7 @@ export async function POST(request) {
 }
 
 // Function to find a matching test for the element
-async function getMatchingTest(url, selector, elementType, originalContent) {
+async function getMatchingTest(url, selector, elementType, originalContent, pageAudience, pageIntent) {
   // In a production environment, this would query a database
   // For demo purposes, we'll use some hardcoded tests
   
@@ -65,8 +79,12 @@ async function getMatchingTest(url, selector, elementType, originalContent) {
   const isProductPage = url.includes('/product/') || url.includes('/products/');
   const isCheckoutPage = url.includes('/checkout') || url.includes('/cart');
   
+  // Use audience and intent information to influence content
+  const hasAudience = pageAudience && pageAudience.trim().length > 0;
+  const hasIntent = pageIntent && pageIntent.trim().length > 0;
+  
   // Define some sample tests
-  const tests = [
+  let tests = [
     // Heading tests
     {
       id: 'heading-test-1',
@@ -76,7 +94,7 @@ async function getMatchingTest(url, selector, elementType, originalContent) {
       contentType: 'heading',
       variants: [
         { id: 'control', content: originalContent },
-        { id: 'variant-1', content: originalContent ? transformHeading(originalContent) : 'Experience Our Revolutionary Product' },
+        { id: 'variant-1', content: originalContent ? transformHeading(originalContent, pageAudience, pageIntent) : 'Experience Our Revolutionary Product' },
         { id: 'variant-2', content: 'Transform Your Experience Today!' }
       ]
     },
@@ -90,7 +108,7 @@ async function getMatchingTest(url, selector, elementType, originalContent) {
       contentType: 'cta',
       variants: [
         { id: 'control', content: originalContent },
-        { id: 'variant-1', content: 'Start Now!' },
+        { id: 'variant-1', content: getButtonText(pageIntent) || 'Start Now!' },
         { id: 'variant-2', content: 'Get Started Today' }
       ]
     },
@@ -104,7 +122,7 @@ async function getMatchingTest(url, selector, elementType, originalContent) {
       contentType: 'product-description',
       variants: [
         { id: 'control', content: originalContent },
-        { id: 'variant-1', content: originalContent ? makeDescriptionMoreCompelling(originalContent) : 'This amazing product will transform the way you work, saving you hours of time and reducing stress.' },
+        { id: 'variant-1', content: originalContent ? makeDescriptionMoreCompelling(originalContent, pageAudience, pageIntent) : 'This amazing product will transform the way you work, saving you hours of time and reducing stress.' },
         { id: 'variant-2', content: 'Loved by thousands of customers worldwide, this premium product delivers exceptional results every time.' }
       ]
     },
@@ -246,23 +264,85 @@ function getContentFingerprint(content, elementType) {
   return `${elementType}-${content.replace(/\s+/g, ' ').trim()}`;
 }
 
+// Get appropriate button text based on page intent
+function getButtonText(intent) {
+  if (!intent) return null;
+  
+  const intentLower = intent.toLowerCase();
+  
+  if (intentLower.includes('sale') || intentLower.includes('discount') || intentLower.includes('offer')) {
+    return 'Claim Your Discount';
+  }
+  
+  if (intentLower.includes('subscribe') || intentLower.includes('newsletter')) {
+    return 'Subscribe Now';
+  }
+  
+  if (intentLower.includes('learn') || intentLower.includes('inform')) {
+    return 'Learn More';
+  }
+  
+  if (intentLower.includes('buy') || intentLower.includes('purchase')) {
+    return 'Buy Now';
+  }
+  
+  if (intentLower.includes('register') || intentLower.includes('sign up')) {
+    return 'Register Now';
+  }
+  
+  return null;
+}
+
 // Transform a heading to make it more compelling
-function transformHeading(originalHeading) {
-  // If heading already has certain attributes, enhance them
-  if (originalHeading.toLowerCase().includes('you') || originalHeading.toLowerCase().includes('your')) {
-    return originalHeading.replace(/your/i, 'Your Personalized');
+function transformHeading(originalHeading, audience, intent) {
+  let heading = originalHeading;
+  
+  // Apply audience-specific adaptations
+  if (audience) {
+    const audienceLower = audience.toLowerCase();
+    
+    if (audienceLower.includes('professional') || audienceLower.includes('business')) {
+      heading = heading.replace(/your/i, 'Your Professional');
+    } else if (audienceLower.includes('parent') || audienceLower.includes('family')) {
+      heading = heading.replace(/your/i, 'Your Family\'s');
+    } else if (audienceLower.includes('student') || audienceLower.includes('academic')) {
+      heading = heading.replace(/your/i, 'Your Academic');
+    }
+  }
+  
+  // Apply intent-specific adaptations
+  if (intent) {
+    const intentLower = intent.toLowerCase();
+    
+    // Remove HTML tags for text processing
+    const plainText = heading.replace(/<[^>]*>/g, '');
+    
+    // Add action words based on intent
+    if (intentLower.includes('sale') || intentLower.includes('discount')) {
+      return `Special Offer: ${plainText}`;
+    }
+    
+    if (intentLower.includes('inform') || intentLower.includes('educate')) {
+      return `Discover ${plainText}`;
+    }
+    
+    if (intentLower.includes('convert') || intentLower.includes('signup')) {
+      return `Experience the Benefits: ${plainText}`;
+    }
+  }
+  
+  // If no specific adaptations applied, use general improvements
+  if (heading.toLowerCase().includes('you') || heading.toLowerCase().includes('your')) {
+    return heading.replace(/your/i, 'Your Personalized');
   }
   
   // Add action words to headings
   const actionVerbs = ['Discover', 'Experience', 'Unleash', 'Transform', 'Elevate'];
   const randomVerb = actionVerbs[Math.floor(Math.random() * actionVerbs.length)];
   
-  // Remove HTML tags for text processing
-  const plainText = originalHeading.replace(/<[^>]*>/g, '');
-  
   // If heading is short, transform it completely
-  if (plainText.length < 30) {
-    return `${randomVerb} ${plainText}`;
+  if (heading.length < 30) {
+    return `${randomVerb} ${heading}`;
   }
   
   // For longer headings, keep structure but add impact words
@@ -270,14 +350,46 @@ function transformHeading(originalHeading) {
   const randomImpact = impactWords[Math.floor(Math.random() * impactWords.length)];
   
   // Inject impact word
-  return originalHeading.replace(/(\w+)/, `${randomImpact} $1`);
+  return heading.replace(/(\w+)/, `${randomImpact} $1`);
 }
 
 // Make a product description more compelling
-function makeDescriptionMoreCompelling(originalDescription) {
-  // If already fairly long, just enhance
-  if (originalDescription.length > 150) {
-    return enhanceDescription(originalDescription);
+function makeDescriptionMoreCompelling(originalDescription, audience, intent) {
+  let description = originalDescription;
+  
+  // Add audience-specific content
+  if (audience) {
+    const audienceLower = audience.toLowerCase();
+    
+    if (audienceLower.includes('professional') || audienceLower.includes('business')) {
+      description += ' Perfect for professionals who value efficiency and reliability.';
+    } else if (audienceLower.includes('parent') || audienceLower.includes('family')) {
+      description += ' Designed with families in mind, ensuring safety and ease of use.';
+    } else if (audienceLower.includes('tech-savvy') || audienceLower.includes('developer')) {
+      description += ' Built with cutting-edge technology for those who appreciate innovation.';
+    }
+  }
+  
+  // Add intent-specific content
+  if (intent) {
+    const intentLower = intent.toLowerCase();
+    
+    if (intentLower.includes('sale') || intentLower.includes('discount')) {
+      description += ' Limited-time offer available now!';
+    }
+    
+    if (intentLower.includes('inform') || intentLower.includes('educate')) {
+      description += ' Learn more about how this works in our detailed guide.';
+    }
+    
+    if (intentLower.includes('trust') || intentLower.includes('credibility')) {
+      description += ' Trusted by thousands of satisfied customers.';
+    }
+  }
+  
+  // If no specific adaptations applied, use general improvements
+  if (description.length > 150) {
+    return enhanceDescription(description);
   }
   
   // For shorter descriptions, expand with benefits
@@ -290,7 +402,7 @@ function makeDescriptionMoreCompelling(originalDescription) {
   
   const randomBenefit = benefitPhrases[Math.floor(Math.random() * benefitPhrases.length)];
   
-  return `${originalDescription} ${randomBenefit} essential product for thousands of satisfied customers.`;
+  return `${description} ${randomBenefit} essential product for thousands of satisfied customers.`;
 }
 
 // Enhance a product description
