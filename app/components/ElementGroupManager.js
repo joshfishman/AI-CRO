@@ -13,6 +13,7 @@ export default function ElementGroupManager({ initialData = null }) {
   const [customPrompt, setCustomPrompt] = useState('');
   const [requestIds, setRequestIds] = useState({});
   const [includeOriginal, setIncludeOriginal] = useState(true);
+  const [selectedContent, setSelectedContent] = useState({});
 
   // Initialize with data from bookmarklet if available
   useEffect(() => {
@@ -58,6 +59,11 @@ export default function ElementGroupManager({ initialData = null }) {
     const newRequestIds = { ...requestIds };
     delete newRequestIds[index];
     setRequestIds(newRequestIds);
+    
+    // Remove selected content for this element
+    const newSelectedContent = { ...selectedContent };
+    delete newSelectedContent[index];
+    setSelectedContent(newSelectedContent);
     
     // Update active index if needed
     if (activeElementIndex >= newElements.length) {
@@ -119,8 +125,11 @@ export default function ElementGroupManager({ initialData = null }) {
     setIsGenerating(true);
     
     try {
+      // Get the selected content or use the entire element's text
+      const content = selectedContent[elementIndex] || element.text || '';
+      
       // Generate default prompt if none provided
-      const elementPrompt = customPrompt || generateDefaultPrompt(element);
+      const elementPrompt = customPrompt || generateDefaultPrompt(element, content);
       
       // Call the content generation API
       const response = await fetch('/api/generate-content', {
@@ -130,7 +139,7 @@ export default function ElementGroupManager({ initialData = null }) {
         },
         body: JSON.stringify({
           elementType: element.type,
-          originalContent: element.text || '',
+          originalContent: content,
           audience: audienceInfo,
           intent: intentInfo,
           pageContext: pageContext,
@@ -160,7 +169,7 @@ export default function ElementGroupManager({ initialData = null }) {
     } catch (error) {
       console.error('Error generating content options:', error);
       // Fallback to mock data in case of error
-      const mockVariations = await simulateContentGeneration(element);
+      const mockVariations = await simulateContentGeneration(element, selectedContent[elementIndex]);
       setContentVariations({
         ...contentVariations,
         [elementIndex]: mockVariations
@@ -170,15 +179,15 @@ export default function ElementGroupManager({ initialData = null }) {
     }
   };
 
-  const generateDefaultPrompt = (element) => {
+  const generateDefaultPrompt = (element, content) => {
     const elementType = element.type;
-    const originalText = element.text || '';
+    const contentToUse = content || element.text || '';
     
     let prompt = `Generate 6 alternative versions for this ${elementType} element`;
     
     // Add original text
-    if (originalText) {
-      prompt += `:\n\n"${originalText.trim()}"`;
+    if (contentToUse) {
+      prompt += `:\n\n"${contentToUse.trim()}"`;
     }
     
     // Add audience if available
@@ -209,13 +218,13 @@ export default function ElementGroupManager({ initialData = null }) {
   };
 
   // Fallback function for simulating content generation
-  const simulateContentGeneration = async (element) => {
+  const simulateContentGeneration = async (element, selectedText) => {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Generate mock variations based on element type
     const type = element.type;
-    const originalText = element.text || '';
+    const originalText = selectedText || element.text || '';
     
     let variations = [];
     
@@ -279,24 +288,26 @@ export default function ElementGroupManager({ initialData = null }) {
     }
   };
 
+  const handleSelectContent = (elementIndex, content) => {
+    setSelectedContent({
+      ...selectedContent,
+      [elementIndex]: content
+    });
+    
+    // Update the prompt based on the selected content
+    if (elementIndex === activeElementIndex) {
+      const element = selectedElements[activeElementIndex];
+      setCustomPrompt(generateDefaultPrompt(element, content));
+    }
+  };
+
   // Set custom prompt when element selection changes
   useEffect(() => {
     if (selectedElements[activeElementIndex]) {
-      setCustomPrompt(generateDefaultPrompt(selectedElements[activeElementIndex]));
+      const content = selectedContent[activeElementIndex];
+      setCustomPrompt(generateDefaultPrompt(selectedElements[activeElementIndex], content));
     }
   }, [activeElementIndex, selectedElements, audienceInfo, intentInfo, pageContext]);
-
-  // Auto-generate content for the first element when data is loaded from bookmarklet
-  useEffect(() => {
-    if (initialData && selectedElements.length > 0 && Object.keys(contentVariations).length === 0) {
-      // Wait a moment to ensure UI is fully rendered
-      const timer = setTimeout(() => {
-        generateContentOptions(0);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [initialData, selectedElements]);
 
   const saveChanges = () => {
     // In a real implementation, this would save the changes to the database
@@ -465,7 +476,51 @@ export default function ElementGroupManager({ initialData = null }) {
                   Original Content
                 </label>
                 <div className="border rounded-md p-3 bg-gray-50">
-                  {selectedElements[activeElementIndex].text || 'No text content'}
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-medium text-gray-500">
+                      {selectedContent[activeElementIndex] ? 'Selected Content:' : 'Full Content:'}
+                    </h4>
+                    {selectedContent[activeElementIndex] && (
+                      <button
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                        onClick={() => handleSelectContent(activeElementIndex, '')}
+                      >
+                        Use Full Content
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <div 
+                      className="prose max-w-none select-text"
+                      onMouseUp={() => {
+                        const selection = window.getSelection();
+                        if (selection && selection.toString()) {
+                          handleSelectContent(activeElementIndex, selection.toString());
+                        }
+                      }}
+                    >
+                      {selectedElements[activeElementIndex].text || 'No text content'}
+                    </div>
+                    {selectedContent[activeElementIndex] && (
+                      <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Selected Content:</span>
+                          <button
+                            className="text-xs text-red-600 hover:text-red-800"
+                            onClick={() => handleSelectContent(activeElementIndex, '')}
+                          >
+                            Clear Selection
+                          </button>
+                        </div>
+                        <div className="mt-1">{selectedContent[activeElementIndex]}</div>
+                      </div>
+                    )}
+                    {!selectedContent[activeElementIndex] && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        <em>Select text within the content to target specific phrases (highlight text and release mouse button)</em>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               
