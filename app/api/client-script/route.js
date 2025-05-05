@@ -647,25 +647,36 @@ export async function GET(request) {
       
       // Check if element has banner characteristics
       function hasBannerCharacteristics(element) {
-        const rect = element.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        
-        // Get class names safely
-        let classNames = '';
-        if (element.className) {
-          if (typeof element.className === 'string') {
-            classNames = element.className.toLowerCase();
-          } else if (element.className.baseVal) {
-            // For SVG elements className is an SVGAnimatedString with baseVal
-            classNames = element.className.baseVal.toLowerCase();
+        try {
+          const rect = element.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+          
+          // Get class names safely
+          let classNames = '';
+          if (element.className) {
+            if (typeof element.className === 'string') {
+              classNames = element.className.toLowerCase();
+            } else if (element.className.baseVal) {
+              // For SVG elements className is an SVGAnimatedString with baseVal
+              classNames = element.className.baseVal.toLowerCase();
+            } else {
+              // If className is not a string and has no baseVal, try getAttribute
+              const classAttr = element.getAttribute && element.getAttribute('class');
+              if (classAttr) {
+                classNames = classAttr.toLowerCase();
+              }
+            }
           }
+          
+          // Banners tend to be full-width or nearly full-width elements
+          return rect.width > viewportWidth * 0.8 && 
+                 rect.height > 100 && 
+                 (classNames.includes('banner') || 
+                 classNames.includes('hero'));
+        } catch (e) {
+          console.error("[AI CRO] Error in hasBannerCharacteristics:", e);
+          return false;
         }
-        
-        // Banners tend to be full-width or nearly full-width elements
-        return rect.width > viewportWidth * 0.8 && 
-               rect.height > 100 && 
-               (classNames.includes('banner') || 
-               classNames.includes('hero'));
       }
       
       // Check if element is visible
