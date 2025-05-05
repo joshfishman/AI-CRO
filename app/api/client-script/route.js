@@ -276,29 +276,29 @@ export async function GET(request) {
         }
         
         try {
-          const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-              if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // Check if new nodes should be personalized
-                mutation.addedNodes.forEach(node => {
-                  if (node.nodeType === 1) { // Element node
-                    checkAndPersonalizeElement(node);
-                    
-                    // Also check children
-                    const elements = node.querySelectorAll('*');
-                    elements.forEach(checkAndPersonalizeElement);
-                  }
-                });
-              }
-            });
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+              // Check if new nodes should be personalized
+              mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) { // Element node
+                  checkAndPersonalizeElement(node);
+                  
+                  // Also check children
+                  const elements = node.querySelectorAll('*');
+                  elements.forEach(checkAndPersonalizeElement);
+                }
+              });
+            }
           });
-          
-          observer.observe(document.body, {
-            childList: true,
-            subtree: true
-          });
-          
-          log("Mutation observer set up for dynamic content");
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        log("Mutation observer set up for dynamic content");
         } catch (e) {
           console.error("[AI CRO] Error setting up mutation observer:", e);
         }
@@ -331,58 +331,58 @@ export async function GET(request) {
       // Generate a unique CSS selector for an element
       function getUniqueSelector(element) {
         try {
-          if (element.id) {
-            return '#' + element.id;
-          }
-          
+        if (element.id) {
+          return '#' + element.id;
+        }
+        
           if (element.className && typeof element.className === 'string') {
-            const classes = element.className.split(' ').filter(c => c && !c.includes(':'));
-            if (classes.length > 0) {
-              const selector = element.tagName.toLowerCase() + '.' + classes.join('.');
-              // Check if this selector is unique
-              if (document.querySelectorAll(selector).length === 1) {
-                return selector;
-              }
+          const classes = element.className.split(' ').filter(c => c && !c.includes(':'));
+          if (classes.length > 0) {
+            const selector = element.tagName.toLowerCase() + '.' + classes.join('.');
+            // Check if this selector is unique
+            if (document.querySelectorAll(selector).length === 1) {
+              return selector;
             }
           }
-          
-          // Try a more specific path
-          let path = '';
-          let current = element;
-          
+        }
+        
+        // Try a more specific path
+        let path = '';
+        let current = element;
+        
           while (current && current !== document.body && current.parentNode) {
-            let selector = current.tagName.toLowerCase();
-            
-            if (current.id) {
-              selector = '#' + current.id;
-              path = selector + (path ? ' > ' + path : '');
-              break;
-            } else {
-              const siblings = Array.from(current.parentNode.children).filter(
-                child => child.tagName === current.tagName
-              );
-              
-              if (siblings.length > 1) {
-                const index = siblings.indexOf(current) + 1;
-                selector += ':nth-child(' + index + ')';
-              }
-              
-              path = selector + (path ? ' > ' + path : '');
-              current = current.parentNode;
-            }
-          }
+          let selector = current.tagName.toLowerCase();
           
-          // Fallback to a data attribute if needed
-          if (!path || document.querySelectorAll(path).length > 1) {
-            if (!element.hasAttribute('data-aicro-id')) {
-              const id = 'aicro-' + Math.random().toString(36).substring(2, 9);
-              element.setAttribute('data-aicro-id', id);
+          if (current.id) {
+            selector = '#' + current.id;
+            path = selector + (path ? ' > ' + path : '');
+            break;
+          } else {
+            const siblings = Array.from(current.parentNode.children).filter(
+              child => child.tagName === current.tagName
+            );
+            
+            if (siblings.length > 1) {
+              const index = siblings.indexOf(current) + 1;
+              selector += ':nth-child(' + index + ')';
             }
             
-            return '[data-aicro-id="' + element.getAttribute('data-aicro-id') + '"]';
+            path = selector + (path ? ' > ' + path : '');
+            current = current.parentNode;
+          }
+        }
+        
+        // Fallback to a data attribute if needed
+        if (!path || document.querySelectorAll(path).length > 1) {
+          if (!element.hasAttribute('data-aicro-id')) {
+            const id = 'aicro-' + Math.random().toString(36).substring(2, 9);
+            element.setAttribute('data-aicro-id', id);
           }
           
-          return path;
+          return '[data-aicro-id="' + element.getAttribute('data-aicro-id') + '"]';
+        }
+        
+        return path;
         } catch (e) {
           console.error("[AI CRO] Error generating selector:", e);
           return '';
@@ -661,18 +661,19 @@ export async function GET(request) {
       };
       
       // Load the selector UI code only on demand to avoid impacting main script performance
-      AICRO.startSelector = function() {
+      AICRO.startSelector = function(options = {}) {
         // Prevent double loading
         if (window.AICRO.selector && window.AICRO.selector.active) {
+          console.log('AI CRO selector is already active');
           return this;
         }
         
-        // Load the selector UI code on demand
+        // Load the selector module on demand
         const script = document.createElement('script');
-        script.src = "\${config.apiHost}/api/get-bookmarklet?type=selector&cachebust=" + Date.now();
+        script.src = "\${config.apiHost}/api/selector-module?cachebust=" + Date.now();
         script.onload = function() {
           if (window.AICRO.selector && typeof window.AICRO.selector.start === 'function') {
-            window.AICRO.selector.start();
+            window.AICRO.selector.start(options);
           }
         };
         document.head.appendChild(script);

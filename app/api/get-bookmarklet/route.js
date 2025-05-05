@@ -10,7 +10,7 @@ export async function OPTIONS(request) {
   });
 }
 
-export async function GET() {
+export async function GET(request) {
   // Set CORS headers
   const headers = {
     'Content-Type': 'application/json',
@@ -19,6 +19,15 @@ export async function GET() {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Cache-Control': 'max-age=3600'
   };
+
+  // Check if this is a request for the selector module
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get('type');
+  
+  if (type === 'selector') {
+    // Redirect to the new selector module API
+    return Response.redirect(new URL('/api/selector-module', request.url), 302);
+  }
 
   // Use absolute URL for production or fallback to localhost for development
   const host = process.env.VERCEL_URL
