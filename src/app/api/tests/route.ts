@@ -95,10 +95,7 @@ export async function POST(request: Request) {
     // Save the new test
     await updateTestConfig(testId, newTest);
     
-    return NextResponse.json({
-      id: testId,
-      ...newTest
-    }, { status: 201 });
+    return NextResponse.json(newTest, { status: 201 });
   } catch (error) {
     console.error('Error creating test:', error);
     return NextResponse.json(
