@@ -1174,7 +1174,7 @@ export async function GET(request) {
               const isChecked = e.target.checked;
               
               // Select/deselect all elements in the group
-              dialog.querySelectorAll(`.aicro-element-select[data-group="${group}"]`).forEach(cb => {
+              dialog.querySelectorAll('.aicro-element-select[data-group="' + group + '"]').forEach(cb => {
                 cb.checked = isChecked;
               });
             });
@@ -1199,7 +1199,7 @@ export async function GET(request) {
             const selectedElements = [];
             
             for (const [groupName, elements] of Object.entries(groups)) {
-              const checkboxes = dialog.querySelectorAll(`.aicro-element-select[data-group="${groupName}"]`);
+              const checkboxes = dialog.querySelectorAll('.aicro-element-select[data-group="' + groupName + '"]');
               
               checkboxes.forEach((checkbox, index) => {
                 if (checkbox.checked) {
