@@ -10,7 +10,12 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { getServerAuthSession, UserRole } from "../auth";
+// No longer using auth from removed module
+// Define user role here instead
+export enum UserRole {
+  user = "user",
+  admin = "admin",
+}
 
 /**
  * 1. CONTEXT
@@ -24,12 +29,17 @@ import { getServerAuthSession, UserRole } from "../auth";
  *
  * @see https://trpc.io/docs/server/context
  */
+interface CreateContextOptions {
+  session: null; // No session now
+}
+
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await getServerAuthSession();
+  // No session - removed auth
+  const session = null;
 
   return {
     session,
-    ...opts,
+    headers: opts.headers,
   };
 };
 
@@ -87,22 +97,17 @@ export const publicProcedure = t.procedure;
 /**
  * Protected (authenticated) procedure
  *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
+ * This has been simplified since we removed auth.
+ * In a real app, this would verify the session is valid.
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Session or user information is missing",
-    });
-  }
-
+  // For demo purposes, we're allowing all requests
+  // In production, this would check authentication
+  
   return next({
     ctx: {
-      session: { ...ctx.session, user: ctx.session.user },
+      // Pass an empty session object
+      session: { user: { id: 'demo-user', role: UserRole.admin } },
     },
   });
 });

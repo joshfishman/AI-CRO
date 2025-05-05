@@ -96,16 +96,23 @@ const mockEdgeConfig = {
   }
 };
 
+// Create a custom type that includes both get and set methods
+type EdgeConfigClientWithSet = {
+  get: (key: string) => Promise<any>;
+  set: (key: string, value: any) => Promise<boolean>;
+  has: (key: string) => Promise<boolean>;
+};
+
 // Create the Edge Config client with fallback to mock
 const edgeConfig = process.env.EDGE_CONFIG 
-  ? createClient(process.env.EDGE_CONFIG)
+  ? createClient(process.env.EDGE_CONFIG) as unknown as EdgeConfigClientWithSet
   : mockEdgeConfig;
 
 // Helper functions for common operations
 export async function getUserConfig(userId: string): Promise<UserConfig | null> {
   try {
-    const users = await edgeConfig.get<Record<string, UserConfig>>('users');
-    return users?.[userId] ?? null;
+    const users = await edgeConfig.get('users') || {};
+    return users[userId] ?? null;
   } catch (error) {
     console.error('Error getting user config:', error);
     return null;
@@ -114,8 +121,8 @@ export async function getUserConfig(userId: string): Promise<UserConfig | null> 
 
 export async function getTestConfig(testId: string): Promise<TestConfig | null> {
   try {
-    const tests = await edgeConfig.get<Record<string, TestConfig>>('tests');
-    return tests?.[testId] ?? null;
+    const tests = await edgeConfig.get('tests') || {};
+    return tests[testId] ?? null;
   } catch (error) {
     console.error('Error getting test config:', error);
     return null;
@@ -124,8 +131,8 @@ export async function getTestConfig(testId: string): Promise<TestConfig | null> 
 
 export async function getSegmentConfig(segmentId: string): Promise<SegmentConfig | null> {
   try {
-    const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments');
-    return segments?.[segmentId] ?? null;
+    const segments = await edgeConfig.get('segments') || {};
+    return segments[segmentId] ?? null;
   } catch (error) {
     console.error('Error getting segment config:', error);
     return null;
@@ -134,8 +141,8 @@ export async function getSegmentConfig(segmentId: string): Promise<SegmentConfig
 
 export async function getGlobalSettings(): Promise<GlobalSettings | null> {
   try {
-    const settings = await edgeConfig.get<GlobalSettings>('settings');
-    return settings ?? null;
+    const settings = await edgeConfig.get('settings') || null;
+    return settings;
   } catch (error) {
     console.error('Error getting global settings:', error);
     return null;
