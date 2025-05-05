@@ -1,7 +1,6 @@
 import React from "react";
 import ClientProvider from "@/components/ClientProvider";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
