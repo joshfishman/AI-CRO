@@ -146,6 +146,8 @@ MIT License
 
 AI-powered Conversion Rate Optimization platform that allows you to create, manage, and monitor A/B tests and personalization on your website.
 
+*Last updated: June 2024*
+
 ## Features
 
 - **Element Selector Bookmarklet**: Easily select and target elements on your website
