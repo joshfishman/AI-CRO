@@ -66,50 +66,118 @@ export interface EdgeConfigData {
   settings: GlobalSettings;
 }
 
-// Create the Edge Config client
-const edgeConfig = createClient(process.env.EDGE_CONFIG);
+// Create a mock Edge Config for local development
+const mockEdgeConfig = {
+  async get(key: string) {
+    console.log(`[Mock Edge Config] Getting key: ${key}`);
+    const mockData: Record<string, any> = {
+      users: {},
+      tests: {},
+      segments: {},
+      settings: {
+        defaultTheme: 'light',
+        apiKeys: {},
+        features: {
+          advancedTargeting: true,
+          analytics: true,
+          bookmarklet: true
+        }
+      }
+    };
+    return mockData[key];
+  },
+  async set(key: string, value: any) {
+    console.log(`[Mock Edge Config] Setting key: ${key}`, value);
+    return true;
+  },
+  async has(key: string) {
+    console.log(`[Mock Edge Config] Checking key: ${key}`);
+    return ['users', 'tests', 'segments', 'settings'].includes(key);
+  }
+};
+
+// Create the Edge Config client with fallback to mock
+const edgeConfig = process.env.EDGE_CONFIG 
+  ? createClient(process.env.EDGE_CONFIG)
+  : mockEdgeConfig;
 
 // Helper functions for common operations
 export async function getUserConfig(userId: string): Promise<UserConfig | null> {
-  const users = await edgeConfig.get<Record<string, UserConfig>>('users');
-  return users?.[userId] ?? null;
+  try {
+    const users = await edgeConfig.get<Record<string, UserConfig>>('users');
+    return users?.[userId] ?? null;
+  } catch (error) {
+    console.error('Error getting user config:', error);
+    return null;
+  }
 }
 
 export async function getTestConfig(testId: string): Promise<TestConfig | null> {
-  const tests = await edgeConfig.get<Record<string, TestConfig>>('tests');
-  return tests?.[testId] ?? null;
+  try {
+    const tests = await edgeConfig.get<Record<string, TestConfig>>('tests');
+    return tests?.[testId] ?? null;
+  } catch (error) {
+    console.error('Error getting test config:', error);
+    return null;
+  }
 }
 
 export async function getSegmentConfig(segmentId: string): Promise<SegmentConfig | null> {
-  const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments');
-  return segments?.[segmentId] ?? null;
+  try {
+    const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments');
+    return segments?.[segmentId] ?? null;
+  } catch (error) {
+    console.error('Error getting segment config:', error);
+    return null;
+  }
 }
 
 export async function getGlobalSettings(): Promise<GlobalSettings | null> {
-  const settings = await edgeConfig.get<GlobalSettings>('settings');
-  return settings ?? null;
+  try {
+    const settings = await edgeConfig.get<GlobalSettings>('settings');
+    return settings ?? null;
+  } catch (error) {
+    console.error('Error getting global settings:', error);
+    return null;
+  }
 }
 
 // Update functions
 export async function updateUserConfig(userId: string, data: Partial<UserConfig>): Promise<void> {
-  const users = await edgeConfig.get<Record<string, UserConfig>>('users') ?? {};
-  users[userId] = { ...users[userId], ...data };
-  await edgeConfig.set('users', users);
+  try {
+    const users = await edgeConfig.get<Record<string, UserConfig>>('users') ?? {};
+    users[userId] = { ...users[userId], ...data };
+    await edgeConfig.set('users', users);
+  } catch (error) {
+    console.error('Error updating user config:', error);
+  }
 }
 
 export async function updateTestConfig(testId: string, data: Partial<TestConfig>): Promise<void> {
-  const tests = await edgeConfig.get<Record<string, TestConfig>>('tests') ?? {};
-  tests[testId] = { ...tests[testId], ...data };
-  await edgeConfig.set('tests', tests);
+  try {
+    const tests = await edgeConfig.get<Record<string, TestConfig>>('tests') ?? {};
+    tests[testId] = { ...tests[testId], ...data };
+    await edgeConfig.set('tests', tests);
+  } catch (error) {
+    console.error('Error updating test config:', error);
+  }
 }
 
 export async function updateSegmentConfig(segmentId: string, data: Partial<SegmentConfig>): Promise<void> {
-  const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments') ?? {};
-  segments[segmentId] = { ...segments[segmentId], ...data };
-  await edgeConfig.set('segments', segments);
+  try {
+    const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments') ?? {};
+    segments[segmentId] = { ...segments[segmentId], ...data };
+    await edgeConfig.set('segments', segments);
+  } catch (error) {
+    console.error('Error updating segment config:', error);
+  }
 }
 
 export async function updateGlobalSettings(data: Partial<GlobalSettings>): Promise<void> {
-  const settings = await edgeConfig.get<GlobalSettings>('settings') ?? {};
-  await edgeConfig.set('settings', { ...settings, ...data });
+  try {
+    const settings = await edgeConfig.get<GlobalSettings>('settings') ?? {};
+    await edgeConfig.set('settings', { ...settings, ...data });
+  } catch (error) {
+    console.error('Error updating global settings:', error);
+  }
 } 
