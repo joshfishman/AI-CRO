@@ -1,27 +1,50 @@
 export async function OPTIONS(request) {
+  const origin = request.headers.get('origin') || '*';
+  
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400'
     }
   });
 }
 
 export async function GET(request) {
+  // Get the origin from the request headers
+  const origin = request.headers.get('origin') || '*';
+  const referer = request.headers.get('referer');
+  const clientDomain = referer ? new URL(referer).hostname : '';
+  
   // Set CORS headers to allow the script to be loaded from any domain
   const headers = {
-    'Content-Type': 'application/javascript',
-    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/javascript; charset=utf-8',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Cache-Control': 'max-age=3600'
+    'Access-Control-Allow-Credentials': 'true',
+    'Cache-Control': 'max-age=3600, public',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+    'Cross-Origin-Embedder-Policy': 'credentialless',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
   };
 
-  // Host URL (for API requests)
-  const host = 'https://ai-cro-three.vercel.app';
+  // Set dynamic host based on request
+  let host = 'https://ai-cro-three.vercel.app';
+  
+  // If the request comes from the client, try using their domain to avoid CORS
+  if (request.headers.get('host')) {
+    const requestHost = request.headers.get('host');
+    // Only change the host if it's our domain to prevent security issues
+    if (requestHost.includes('vercel.app') || requestHost.includes('localhost')) {
+      host = `https://${requestHost}`;
+    }
+  }
 
   const clientScript = `
     (function() {
@@ -164,7 +187,8 @@ export async function GET(request) {
         fetch(\`\${config.apiHost}/api/personalize\`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin
           },
           mode: 'cors',
           credentials: 'omit',
@@ -244,7 +268,8 @@ export async function GET(request) {
         fetch(\`\${config.apiHost}/api/track\`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin
           },
           mode: 'cors',
           credentials: 'omit',
@@ -269,6 +294,12 @@ export async function GET(request) {
       
       // Set up MutationObserver to watch for dynamic content
       function setupMutationObserver() {
+        // Only set up if MutationObserver is available
+        if (!window.MutationObserver) {
+          log("MutationObserver not available in this browser");
+          return;
+        }
+        
         const observer = new MutationObserver(function(mutations) {
           mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -286,12 +317,16 @@ export async function GET(request) {
           });
         });
         
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true
-        });
-        
-        log("Mutation observer set up for dynamic content");
+        try {
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+          
+          log("Mutation observer set up for dynamic content");
+        } catch (e) {
+          console.error("[AI CRO] Error setting up mutation observer:", e);
+        }
       }
       
       // Auto-personalize all tagged elements and detect important elements
@@ -320,58 +355,63 @@ export async function GET(request) {
       
       // Generate a unique CSS selector for an element
       function getUniqueSelector(element) {
-        if (element.id) {
-          return '#' + element.id;
-        }
-        
-        if (element.className) {
-          const classes = element.className.split(' ').filter(c => c && !c.includes(':'));
-          if (classes.length > 0) {
-            const selector = element.tagName.toLowerCase() + '.' + classes.join('.');
-            // Check if this selector is unique
-            if (document.querySelectorAll(selector).length === 1) {
-              return selector;
-            }
-          }
-        }
-        
-        // Try a more specific path
-        let path = '';
-        let current = element;
-        
-        while (current && current !== document.body) {
-          let selector = current.tagName.toLowerCase();
-          
-          if (current.id) {
-            selector = '#' + current.id;
-            path = selector + (path ? ' > ' + path : '');
-            break;
-          } else {
-            const siblings = Array.from(current.parentNode.children).filter(
-              child => child.tagName === current.tagName
-            );
-            
-            if (siblings.length > 1) {
-              const index = siblings.indexOf(current) + 1;
-              selector += ':nth-child(' + index + ')';
-            }
-            
-            path = selector + (path ? ' > ' + path : '');
-            current = current.parentNode;
-          }
-        }
-        
-        // Fallback to a data attribute if needed
-        if (!path || document.querySelectorAll(path).length > 1) {
-          if (!element.hasAttribute('data-aicro-id')) {
-            const id = 'aicro-' + Math.random().toString(36).substring(2, 9);
-            element.setAttribute('data-aicro-id', id);
+        try {
+          if (element.id) {
+            return '#' + element.id;
           }
           
-          return '[data-aicro-id="' + element.getAttribute('data-aicro-id') + '"]';
+          if (element.className && typeof element.className === 'string') {
+            const classes = element.className.split(' ').filter(c => c && !c.includes(':'));
+            if (classes.length > 0) {
+              const selector = element.tagName.toLowerCase() + '.' + classes.join('.');
+              // Check if this selector is unique
+              if (document.querySelectorAll(selector).length === 1) {
+                return selector;
+              }
+            }
+          }
+          
+          // Try a more specific path
+          let path = '';
+          let current = element;
+          
+          while (current && current !== document.body && current.parentNode) {
+            let selector = current.tagName.toLowerCase();
+            
+            if (current.id) {
+              selector = '#' + current.id;
+              path = selector + (path ? ' > ' + path : '');
+              break;
+            } else {
+              const siblings = Array.from(current.parentNode.children).filter(
+                child => child.tagName === current.tagName
+              );
+              
+              if (siblings.length > 1) {
+                const index = siblings.indexOf(current) + 1;
+                selector += ':nth-child(' + index + ')';
+              }
+              
+              path = selector + (path ? ' > ' + path : '');
+              current = current.parentNode;
+            }
+          }
+          
+          // Fallback to a data attribute if needed
+          if (!path || document.querySelectorAll(path).length > 1) {
+            if (!element.hasAttribute('data-aicro-id')) {
+              const id = 'aicro-' + Math.random().toString(36).substring(2, 9);
+              element.setAttribute('data-aicro-id', id);
+            }
+            
+            return '[data-aicro-id="' + element.getAttribute('data-aicro-id') + '"]';
+          }
+          
+          return path;
+        } catch (e) {
+          console.error("[AI CRO] Error generating selector:", e);
+          return '';
         }
-        
-        return path;
       }
       
       // Check if an element should be personalized and do so
