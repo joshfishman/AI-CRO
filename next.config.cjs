@@ -9,6 +9,15 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config) => {
+    // Exclude storybook files from the build
+    config.module.rules.push({
+      test: /\.stories\.(js|jsx|ts|tsx)$/,
+      loader: 'ignore-loader',
+    });
+    
+    return config;
+  },
 };
 
 module.exports = nextConfig; 
