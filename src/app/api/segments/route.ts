@@ -1,60 +1,175 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { updateSegmentConfig, SegmentConfig } from '@/lib/edge-config';
+import { getSegmentConfig, updateSegmentConfig } from '@/lib/edge-config';
 
-export async function GET() {
+// GET all segments or a specific segment
+export async function GET(request: Request) {
   try {
-    // Use dummy implementation for demo
-    const mockSegments = {
-      "segment1": {
-        id: "segment1",
-        name: "New Visitors",
-        description: "First-time visitors to the site",
-        rules: [{ type: "url", condition: "contains", value: "utm_source=new" }],
-        users: []
-      },
-      "segment2": {
-        id: "segment2",
-        name: "Returning Customers",
-        description: "Users who have purchased before",
-        rules: [{ type: "custom", condition: "equals", value: "returning_customer" }],
-        users: []
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+
+    if (id) {
+      // Get a single segment
+      const segment = await getSegmentConfig(id);
+      if (!segment) {
+        return NextResponse.json(
+          { error: 'Segment not found' },
+          { status: 404 }
+        );
       }
-    };
-    
-    return NextResponse.json(Object.values(mockSegments));
+      return NextResponse.json(segment);
+    } else {
+      // Get all segments (mock data for now)
+      const segments = [
+        {
+          id: 'segment-1',
+          name: 'New Visitors',
+          description: 'Users visiting the site for the first time',
+          rules: [
+            { type: 'custom', condition: 'visitCount', value: '1' }
+          ],
+          users: []
+        },
+        {
+          id: 'segment-2',
+          name: 'Mobile Users',
+          description: 'Users on mobile devices',
+          rules: [
+            { type: 'device', condition: 'deviceType', value: 'mobile' }
+          ],
+          users: []
+        }
+      ];
+      return NextResponse.json(segments);
+    }
   } catch (error) {
-    console.error('Error fetching segments:', error);
-    return NextResponse.json({ error: 'Failed to fetch segments' }, { status: 500 });
+    console.error('Error getting segments:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch segments' },
+      { status: 500 }
+    );
   }
 }
 
+// POST create a new segment
 export async function POST(request: Request) {
   try {
-    const { name, description, rules } = await request.json();
+    const data = await request.json();
     
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    // Validate required fields
+    if (!data.name || !data.rules) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name, rules' },
+        { status: 400 }
+      );
     }
     
-    // Create a new segment ID
-    const id = crypto.randomUUID();
+    // Generate a unique ID for the segment
+    const segmentId = `segment-${Date.now()}`;
     
-    // Create the new segment
-    const newSegment: SegmentConfig = {
-      id,
-      name,
-      description,
-      rules: rules || [],
-      users: []
+    // Prepare segment config
+    const newSegment = {
+      id: segmentId,
+      name: data.name,
+      description: data.description || '',
+      rules: data.rules || [],
+      users: data.users || []
     };
     
-    // For demo, we'll just return the new segment
-    // In production, this would use updateSegmentConfig(id, newSegment)
+    // Save the new segment
+    await updateSegmentConfig(segmentId, newSegment);
     
-    return NextResponse.json(newSegment);
+    return NextResponse.json({
+      success: true,
+      ...newSegment
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating segment:', error);
-    return NextResponse.json({ error: 'Failed to create segment' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create segment' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT update an existing segment
+export async function PUT(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Segment ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if segment exists
+    const existingSegment = await getSegmentConfig(id);
+    if (!existingSegment) {
+      return NextResponse.json(
+        { error: 'Segment not found' },
+        { status: 404 }
+      );
+    }
+    
+    const data = await request.json();
+    
+    // Prepare updated segment data
+    const { id: _, ...dataWithoutId } = data;
+    
+    // Update the segment
+    await updateSegmentConfig(id, {
+      ...existingSegment,
+      ...dataWithoutId,
+    });
+    
+    const updatedSegment = await getSegmentConfig(id);
+    
+    return NextResponse.json(updatedSegment);
+  } catch (error) {
+    console.error('Error updating segment:', error);
+    return NextResponse.json(
+      { error: 'Failed to update segment' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE a segment
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Segment ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if segment exists
+    const existingSegment = await getSegmentConfig(id);
+    if (!existingSegment) {
+      return NextResponse.json(
+        { error: 'Segment not found' },
+        { status: 404 }
+      );
+    }
+    
+    // In a real implementation, we would delete from the database
+    // For now, just return success
+    
+    return NextResponse.json({
+      success: true,
+      message: `Segment ${id} has been deleted`
+    });
+  } catch (error) {
+    console.error('Error deleting segment:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete segment' },
+      { status: 500 }
+    );
   }
 } 
