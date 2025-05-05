@@ -144,41 +144,124 @@ MIT License
 
 # AI CRO
 
-AI-powered Conversion Rate Optimization platform.
+AI-powered Conversion Rate Optimization platform that allows you to create, manage, and monitor A/B tests and personalization on your website.
+
+## Features
+
+- **Element Selector Bookmarklet**: Easily select and target elements on your website
+- **User Segmentation**: Create and manage user segments for targeted experiments
+- **A/B Testing**: Run experiments with different variants to optimize conversions
+- **Analytics Dashboard**: Track the performance of your tests in real-time
+- **Edge Config Storage**: Fast, global storage for your configurations
 
 ## Getting Started
 
-1. Clone the repository
+### Prerequisites
+
+- Node.js 18+ and npm
+- Vercel account
+- Vercel Edge Config setup
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/joshfishman/AI-CRO.git
+   cd AI-CRO
+   ```
+
 2. Install dependencies:
    ```bash
    npm install
    ```
+
 3. Create a `.env.local` file with:
    ```
    EDGE_CONFIG=your_edge_config_url
    ```
+
 4. Run the development server:
    ```bash
    npm run dev
    ```
 
+5. Visit [http://localhost:3000](http://localhost:3000) to see the app.
+
 ## Deployment
 
-1. Push to GitHub
-2. Connect your repository to Vercel
-3. Add the following environment variables in Vercel:
-   - `EDGE_CONFIG`: Your Vercel Edge Config URL
+### Vercel Setup
 
-## Edge Config Setup
+1. Push your code to GitHub.
+2. Import your repository at [vercel.com/new](https://vercel.com/new).
+3. Create a new Edge Config in your Vercel project:
+   - Go to Storage > Edge Config
+   - Create a new Edge Config
+   - Copy the Edge Config URL
 
-1. Create a new Edge Config in your Vercel project
-2. Copy the Edge Config URL
-3. Add it to your environment variables
+4. Add the Edge Config environment variable:
+   - Go to your project settings
+   - Add `EDGE_CONFIG` with the URL you copied
 
-## Features
+5. Deploy your project.
 
-- A/B Testing
-- User Segmentation
-- Analytics
-- Bookmarklet for element selection
-- Admin Panel
+## Using AI CRO
+
+### 1. Install the Bookmarklet
+
+1. Navigate to the Bookmarklet page in your deployed app.
+2. Drag the "AI CRO Selector" button to your bookmarks bar.
+3. Visit any website where you want to select elements.
+4. Click the bookmarklet in your bookmarks bar.
+5. Hover over elements and click to select them.
+6. Copy the generated CSS selector.
+
+### 2. Create Segments
+
+1. Navigate to the Segments page.
+2. Click "Create New Segment".
+3. Define your segment criteria (URL patterns, device types, etc.).
+4. Save your segment.
+
+### 3. Configure Tests
+
+1. Navigate to the Admin Panel.
+2. Create a new test.
+3. Define the test settings:
+   - Name and description
+   - Target elements (using selectors from the bookmarklet)
+   - Variants (different content to show)
+   - Targeting rules (which segments to include)
+   - Success metrics
+
+4. Enable your test to start it.
+
+### 4. Monitor Results
+
+1. View your test results in the Analytics Dashboard.
+2. Track impressions, clicks, and conversions.
+3. Determine winning variants based on statistical significance.
+
+## API Routes
+
+The platform includes the following API routes:
+
+- `GET /api/segments` - List all segments
+- `POST /api/segments` - Create a new segment
+- `GET /api/get-bookmarklet` - Get the bookmarklet code
+- `GET /api/selector-bookmarklet` - Element selector script
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository.
