@@ -1,228 +1,184 @@
-# Cursor AI-CRO Personalizer
+# A Note from Kevin
 
-A powerful edge-native tool for website personalization and multivariate testing using AI, with zero hard-coding required.
+Hi! If you're at this repo, you've probably seen one of my AI coding videos and want to try some of those techniques yourself. If you have no clue what I'm talking about, here's a good video to show you my approach and how to best use this repo: https://youtu.be/gXmakVsIbF0
 
-**Latest Update:** Fixed API paths and improved cross-origin compatibility.
+You can also just use this with your own techniques, that's cool too. 
 
-## Quick Reference URLs
+You can follow the Getting Started instructions below to start using this stack right away. I've found that using a checklist of tasks in the .cursor-tasks.md file is a great way to make a lot of quick and effective progress with AI Coding. I personally use Cursor in Composer Agent mode with Sonnet 3.7, but feel free to use your AI coding tool of choice.
 
-Here are the correct URLs for the main functionality (replace `ai-cro-three.vercel.app` with your own deployment URL):
+If you need to create the checklist, here are some good prompts to use to go from a high-level idea to a full checklist of stories and tasks: https://chatgpt.com/share/67be0a59-e484-800d-a078-346b2c29d727
 
-| Function                | URL Format                                                      |
-|-------------------------|----------------------------------------------------------------|
-| Personalization script  | `https://ai-cro-three.vercel.app/api?path=personalization-loader.js` |
-| Bookmarklet generator   | `https://ai-cro-three.vercel.app/bookmarklet`                  |
-| Static bookmarklet page | `https://ai-cro-three.vercel.app/bookmarklet-setup.html`       |
-| Admin dashboard         | `https://ai-cro-three.vercel.app/admin`                        |
-| Segments manager        | `https://ai-cro-three.vercel.app/segments`                     |
+You can also use the template in .cursor-template.xml to generate the task list for existing repos. I personally use RepoPrompt to convert the files into a pastable string, but repomix.com is a good option as well. 
 
-## Quick Start
+# 🚀 Next.js Modern Stack Template
 
-To integrate AI CRO into your website, add the following script to your site:
+A Next.js template that combines commonly used tools and libraries for building full-stack web applications. This stack is specifically designed to be optimized for AI coding assistants like Cursor.
 
-```html
-<script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default" defer></script>
+## 🎯 Overview
+
+This template includes [Next.js 14](https://nextjs.org/) with the App Router, [Supabase](https://supabase.com) for the database, [Resend](https://resend.com) for transactional emails, and optional integrations with various AI providers and AWS services.
+
+> ⚠️ **Note**: This is my personal template with tools that I personally have experience with and think are solid options for building modern full-stack web application. Your preferences very likely differ, so feel free to fork and modify it for your own use. I won't be accepting pull requests for additional features, but I'll be happy to help you out if you have any questions.
+
+## ✨ Features
+
+### 🏗️ Core Architecture
+
+- [**Next.js 14**](https://nextjs.org/) - React framework with App Router
+- [**TypeScript**](https://www.typescriptlang.org/) - Type safety throughout
+- [**tRPC**](https://trpc.io/) - End-to-end type-safe APIs
+- [**Prisma**](https://www.prisma.io/) - Database ORM and schema management
+- [**NextAuth.js**](https://next-auth.js.org/) - Authentication with Prisma adapter
+- [**Supabase**](https://supabase.com) - Postgres database with realtime and auth
+
+### 🎨 UI & Styling
+
+- [**Tailwind CSS**](https://tailwindcss.com/) - Utility-first CSS framework
+- [**Framer Motion**](https://www.framer.com/motion/) - Animation library
+- [**Lucide Icons**](https://lucide.dev/) - Icon set
+- Dark mode with Tailwind CSS
+
+### 🛠️ Development Tools
+
+- [**Storybook**](https://storybook.js.org/) - Component development environment
+- [**Geist Font**](https://vercel.com/font) - Typography by Vercel
+
+### 🤖 AI & Background Jobs
+
+- Multiple AI integrations available:
+  - [OpenAI](https://openai.com) - GPT-4 and o-series models
+  - [Anthropic](https://anthropic.com) - Sonnet-3.5
+  - [Perplexity](https://perplexity.ai) - Web search models
+  - [Groq](https://groq.com) - Fast inference
+- [**Inngest**](https://www.inngest.com/) - Background jobs and scheduled tasks
+
+### 🔧 Infrastructure & Services
+
+- [**Resend**](https://resend.com) - Email delivery
+- [**AWS S3**](https://aws.amazon.com/s3/) - File storage
+- [**Supabase**](https://supabase.com) - Primary database
+  (Note that I don't directly use the supabase client in this template, so you can switch out supabase with other database providers via the DATABASE_URL and DIRECT_URL environment variables.)
+
+### 🔔 Additional Features
+
+- [**react-toastify**](https://fkhadra.github.io/react-toastify/) - Toast notifications
+- Utility functions for common operations
+- TypeScript and ESLint configuration included
+
+## 🚀 Getting Started
+
+1. Fork this repository
+2. Install dependencies:
+
+```bash
+npm install
 ```
 
-### How to Use
+3. Copy `.env.example` to `.env` and configure your environment variables
+4. Set up your database:
 
-1. **Set Up Personalization**
-   
-   **Select Elements to Personalize**: Use the selector bookmarklet to identify elements on your page you want to personalize.
-   
-   ```javascript
-   javascript:(function(){var script=document.createElement('script');script.src='https://ai-cro-three.vercel.app/api?path=selector-bookmarklet.js';document.body.appendChild(script);})();
+```bash
+npx prisma migrate dev
+```
+
+5. Start the development server:
+
+```bash
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see your app.
+
+## 📁 Project Structure
+
+- `app/` - Next.js app router pages and API routes
+- `src/`
+  - `components/` - UI components
+  - `lib/` - Utilities and configurations
+    - `api/` - tRPC routers
+    - `utils/` - Shared utilities
+  - `stories/` - Storybook files
+- `prisma/` - Database schema
+
+## 🚀 Deployment
+
+This template is optimized for deployment on [Vercel](https://vercel.com).
+
+### Database Setup
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Get your database connection strings from Supabase:
+   - Project Settings → Database
+   - Copy both the URI (for `DATABASE_URL`) and Direct Connection (for `DIRECT_URL`)
+
+### Vercel Setup
+
+1. Push your code to GitHub
+2. Go to [vercel.com/new](https://vercel.com/new)
+3. Import your repository
+4. Configure the following environment variables:
+   - `DATABASE_URL` - Your Supabase database URL
+   - `DIRECT_URL` - Your Supabase direct connection URL
+   - `NEXTAUTH_SECRET` - Generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL` - Your production URL (e.g., https://your-app.vercel.app)
+   - Add any other variables from `.env.example` that you're using
+5. Deploy!
+
+### Post-Deployment
+
+1. Run database migrations in the Vercel deployment:
+
+```bash
+npx vercel env pull .env.production.local  # Pull production env vars
+npx prisma migrate deploy                  # Deploy migrations to production
+```
+
+2. Set up your custom domain in Vercel (optional):
+   - Go to your project settings
+   - Navigate to Domains
+   - Add your domain and follow the DNS configuration instructions
+
+## 📝 License
+
+MIT License
+
+# AI CRO
+
+AI-powered Conversion Rate Optimization platform.
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
    ```
-   
-   Add this as a bookmark in your browser, then click it when on the page you want to personalize.
-
-2. **Configure Selectors**: For each element you select, provide:
-   - A prompt describing what type of content should be generated
-   - The default (original) content for reference
-
-3. **Save Configuration**: Use the API key to save your configuration:
-   
-   ```javascript
-   fetch('https://ai-cro-three.vercel.app/api?path=save-config', {
-     method: 'POST',
-     headers: {
-       'Content-Type': 'application/json',
-       'x-api-key': 'YOUR_EDITOR_API_KEY'
-     },
-     body: JSON.stringify({
-       url: '/your-page-path',
-       workspace: 'default',
-       selectors: [
-         {
-           selector: 'h1.hero-title',
-           prompt: 'Write a catchy headline for a landing page',
-           default: 'Welcome to our service'
-         },
-         {
-           selector: '.cta-button',
-           prompt: 'Write a compelling call to action',
-           default: 'Get Started'
-         }
-       ]
-     })
-   });
+3. Create a `.env.local` file with:
    ```
-
-## Getting Started with Cursor AI-CRO
-
-### Step 1: Deploy Your Instance
-
-1. **Create a deployment**
-   - Sign in to Vercel
-   - Connect your forked repository
-   - Click "Deploy"
-
-2. **Link Edge Config**
-   - In your Vercel dashboard, navigate to "Settings"
-   - Go to "Edge Config" and create a new configuration
-   - Link it to your project
-
-3. **Set up environment variables**
-   - In Vercel Settings > Environment Variables, add:
-     - `OPENAI_API_KEY` - Your OpenAI API key
-     - `HUBSPOT_PRIVATE_KEY` - HubSpot private app token (optional)
-     - `CURSOR_EDITOR_KEY` - Generate with: openssl rand -hex 16
-     - `NEXT_PUBLIC_CURSOR_API_BASE` - Your Vercel deployment URL
-     - `NEXT_PUBLIC_CURSOR_CDN` - Your Vercel deployment URL
-   
-   > Note: You don't need to worry about workspace IDs. The system will use "default" unless you specifically want to create separate workspaces.
-
-### Step 2: Add the Personalizer to Your Website
-
-1. **Add the script tag**
-   - Place this right before the closing `</body>` tag on your website:
-   ```html
-   <script src="https://your-deployment-url.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
+   EDGE_CONFIG=your_edge_config_url
    ```
-   
-   > **Important:** Make sure to use the exact format shown above with `api?path=` in the URL. 
-   > Do NOT use `/api/personalization-loader.js` (which will cause 404 errors).
-   >
-   > For example, if your deployment is at ai-cro-three.vercel.app, use:
-   > ```html
-   > <script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
-   > ```
-   > 
-   > Note: The `data-cursor-workspace` attribute is optional. Using `"default"` is fine for most users. Only change this if you need to manage multiple separate personalization configurations.
-
-2. **Optional: Add fade-in styling**
-   - For a smoother user experience, add this to your CSS:
-   ```html
-   <style>
-   .personalize-target{visibility:hidden;opacity:0;transition:opacity .3s}
-   .personalized-loaded .personalize-target{visibility:visible;opacity:1}
-   </style>
+4. Run the development server:
+   ```bash
+   npm run dev
    ```
 
-### Step 3: Create Your Personalization Bookmarklet
+## Deployment
 
-1. **Visit your bookmarklet generator page**
-   - Go to `https://your-deployment-url.vercel.app/bookmarklet` 
-   - Enter your deployment URL (should auto-populate)
-   - Enter your editor key (from the CURSOR_EDITOR_KEY environment variable)
-   - The system will use the "default" workspace automatically
+1. Push to GitHub
+2. Connect your repository to Vercel
+3. Add the following environment variables in Vercel:
+   - `EDGE_CONFIG`: Your Vercel Edge Config URL
 
-2. **Install the bookmarklet**
-   - Drag the "Cursor AI-CRO Selector" link to your bookmarks bar
-   - Or copy the code and create a new bookmark with it
+## Edge Config Setup
 
-> **Tip:** If you encounter any issues with the bookmarklet page, you can use the static fallback page at `https://your-deployment-url.vercel.app/bookmarklet-setup.html`
-> 
-> For example:
-> - Main bookmarklet page: `https://ai-cro-three.vercel.app/bookmarklet`
-> - Static fallback: `https://ai-cro-three.vercel.app/bookmarklet-setup.html`
+1. Create a new Edge Config in your Vercel project
+2. Copy the Edge Config URL
+3. Add it to your environment variables
 
-> **Note for Vercel Hobby Plan users:** If you're getting a function limit error, the setup automatically uses a minimized version of the selector tool that reduces the number of serverless functions required.
+## Features
 
-### Step 4: Personalize Your Website
-
-1. **Navigate to the page you want to personalize**
-   - Go to any page on your website
-
-2. **Activate the selector tool**
-   - Click the "Cursor AI-CRO Selector" bookmark
-   - Confirm your editor key if prompted
-
-3. **Select elements to personalize**
-   - Click on any element you want to personalize
-   - For each element:
-     - Choose the content type (text, link, image, background image)
-     - Add up to 4 variants for testing
-     - Specify target user segments
-     - Use AI to generate variant content
-
-4. **Save your configuration**
-   - Click "Save Config" when finished
-
-### Step 5: View Results and Manage Segments
-
-1. **Access your admin dashboard**
-   - Go to `https://your-deployment-url.vercel.app/admin`
-   - Sign in with your editor key
-   
-   Example: `https://ai-cro-three.vercel.app/admin`
-
-2. **Manage custom segments**
-   - Go to `https://your-deployment-url.vercel.app/segments`
-   - Create and manage user segments based on specific rules
-   
-   Example: `https://ai-cro-three.vercel.app/segments`
-
-3. **View test results**
-   - See statistics for each variant
-   - Review performance by segment
-   - Apply winning variants
-
-4. **Quick results view on any page**
-   - Press `Ctrl+Shift+D` on any personalized page to see test statistics
-
-## Targeting Options
-
-When creating variants, you can target specific user segments:
-
-- **Visitor Types**: All Users, New Visitors, Returning Visitors, Customers, Prospects, Leads
-- **Device Types**: Mobile, Desktop, Tablet
-- **Referrer Sources**: Search Engines, Social Media, Email, Direct Traffic
-- **Time Periods**: Morning, Afternoon, Evening, Night
-- **Engagement Levels**: High, Medium, Low
-- **Custom Segments**: Define your own in the segment manager
-
-## Deployment Instructions
-
-### Quick Setup
-
-1. **Deploy to Vercel**
-   - Fork this repository
-   - Connect to Vercel and deploy
-   - Set your deployment URL to ai-cro-three.vercel.app
-
-2. **Environment Variables**
-   - OPENAI_API_KEY: Your OpenAI API key
-   - CURSOR_EDITOR_KEY: Generate with `openssl rand -hex 16`
-   - NEXT_PUBLIC_CURSOR_API_BASE: https://ai-cro-three.vercel.app
-   - NEXT_PUBLIC_CURSOR_CDN: https://ai-cro-three.vercel.app
-
-3. **Add to Website**
-   ```html
-   <script src="https://ai-cro-three.vercel.app/api?path=personalization-loader.js" data-cursor-workspace="default"></script>
-   ```
-
-4. **Access Tools**
-   - Bookmarklet: https://ai-cro-three.vercel.app/bookmarklet
-   - Admin Dashboard: https://ai-cro-three.vercel.app/admin
-   - Segments Manager: https://ai-cro-three.vercel.app/segments
-
-## Troubleshooting
-
-- **Bookmarklet not working?** Make sure your deployment URL is correct and the editor key is valid
-- **Elements not changing?** Check that the personalization script is properly installed
-- **Statistics not showing?** Verify that event tracking is not blocked by ad blockers
-
-## Support and Feedback
-
-For support, please create an issue on the GitHub repository.
+- A/B Testing
+- User Segmentation
+- Analytics
+- Bookmarklet for element selection
+- Admin Panel
