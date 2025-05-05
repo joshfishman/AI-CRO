@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { MdCode, MdInsights, MdPeople, MdBookmark, MdOutlineHub } from "react-icons/md";
+import { MdCode, MdInsights, MdPeople, MdBookmark, MdOutlineHub, MdAutoAwesome, MdSpeed, MdTune } from "react-icons/md";
 
 export default function Home() {
   return (
@@ -11,17 +11,26 @@ export default function Home() {
         <h1 className="text-4xl font-bold mb-4">AI-Powered Website Personalization</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Optimize your website's conversion rate with AI-driven content personalization.
-          Create, test, and deploy personalized experiences without coding.
+          Zero markup required - our AI automatically detects and personalizes key elements.
         </p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center mb-4">
+            <MdAutoAwesome className="text-blue-500 text-xl mr-2" />
+            <h2 className="text-xl font-semibold">Automatic Detection</h2>
+          </div>
+          <p className="text-gray-600 mb-4">No need to modify your HTML. Our AI automatically identifies and personalizes key elements on your site.</p>
+          <Link href="/docs#automatic" className="text-blue-600 hover:text-blue-800 font-medium">Learn About Auto-Detection →</Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
             <MdCode className="text-blue-500 text-xl mr-2" />
             <h2 className="text-xl font-semibold">Easy Integration</h2>
           </div>
-          <p className="text-gray-600 mb-4">Add a simple script to your website to start personalizing content instantly.</p>
+          <p className="text-gray-600 mb-4">Add a simple script to your website to start personalizing content instantly - no coding required.</p>
           <Link href="/docs" className="text-blue-600 hover:text-blue-800 font-medium">View Installation Guide →</Link>
         </div>
 
@@ -30,7 +39,7 @@ export default function Home() {
             <MdPeople className="text-blue-500 text-xl mr-2" />
             <h2 className="text-xl font-semibold">User Segmentation</h2>
           </div>
-          <p className="text-gray-600 mb-4">Target visitors based on behavior, location, device, and custom attributes.</p>
+          <p className="text-gray-600 mb-4">Target visitors based on behavior, location, device, and custom attributes for personalized experiences.</p>
           <Link href="/segments" className="text-blue-600 hover:text-blue-800 font-medium">Manage Segments →</Link>
         </div>
 
@@ -39,8 +48,26 @@ export default function Home() {
             <MdInsights className="text-blue-500 text-xl mr-2" />
             <h2 className="text-xl font-semibold">A/B Testing</h2>
           </div>
-          <p className="text-gray-600 mb-4">Test different content variations and automatically promote winners.</p>
+          <p className="text-gray-600 mb-4">Test different content variations and automatically promote winners to maximize conversions.</p>
           <Link href="/admin" className="text-blue-600 hover:text-blue-800 font-medium">Manage Tests →</Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <MdSpeed className="text-blue-500 text-xl mr-2" />
+            <h2 className="text-xl font-semibold">Fast Performance</h2>
+          </div>
+          <p className="text-gray-600 mb-4">Lightning-fast personalization that doesn't slow down your website or create layout shifts.</p>
+          <Link href="/docs#configuration" className="text-blue-600 hover:text-blue-800 font-medium">Performance Options →</Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <MdTune className="text-blue-500 text-xl mr-2" />
+            <h2 className="text-xl font-semibold">Custom Rules</h2>
+          </div>
+          <p className="text-gray-600 mb-4">Create custom personalization rules to target specific elements based on your unique requirements.</p>
+          <Link href="/docs#automatic" className="text-blue-600 hover:text-blue-800 font-medium">Custom Rules Guide →</Link>
         </div>
       </div>
 
@@ -71,19 +98,22 @@ export default function Home() {
         </div>
         
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-2">3. Mark elements for personalization</h3>
-          <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
+          <h3 className="text-lg font-medium mb-2">3. That's it!</h3>
+          <p className="text-gray-600">
+            Our AI will automatically detect and personalize important elements on your page. You can also 
+            manually add the <code>data-aicro</code> attribute to specific elements if needed.
+          </p>
+          <div className="bg-gray-50 p-4 rounded border mb-2 mt-4 overflow-x-auto">
             <code className="text-sm">
               {`<h1 data-aicro>Welcome to our website!</h1>
 <button data-aicro class="cta-button">Sign Up Now</button>`}
             </code>
           </div>
-          <p className="text-gray-600 text-sm">Add the <code>data-aicro</code> attribute to elements you want to personalize.</p>
         </div>
         
         <div>
           <h3 className="text-lg font-medium mb-2">4. Create tests in the admin dashboard</h3>
-          <p className="text-gray-600 mb-4">Use the admin dashboard to create tests for your marked elements.</p>
+          <p className="text-gray-600 mb-4">Use the admin dashboard to create and manage personalization tests.</p>
           <Link href="/admin" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
             Go to Admin Dashboard
           </Link>

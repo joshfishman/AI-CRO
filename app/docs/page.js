@@ -13,6 +13,7 @@ export default function DocumentationPage() {
         <ul className="space-y-1">
           <li><a href="#installation" className="text-blue-600 hover:underline">Installation</a></li>
           <li><a href="#configuration" className="text-blue-600 hover:underline">Configuration</a></li>
+          <li><a href="#automatic" className="text-blue-600 hover:underline">Automatic Personalization</a></li>
           <li><a href="#testing" className="text-blue-600 hover:underline">Creating Tests</a></li>
           <li><a href="#segments" className="text-blue-600 hover:underline">User Segmentation</a></li>
           <li><a href="#tracking" className="text-blue-600 hover:underline">Event Tracking</a></li>
@@ -56,7 +57,7 @@ export default function DocumentationPage() {
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">3. Mark elements for personalization</h3>
+          <h3 className="text-lg font-semibold mb-2">3. Mark elements for personalization (Optional)</h3>
           <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
             <code className="text-sm">
 {`<h1 data-aicro>Welcome to our website!</h1>
@@ -64,8 +65,8 @@ export default function DocumentationPage() {
             </code>
           </div>
           <p className="text-gray-700">
-            Add the <code>data-aicro</code> attribute to any HTML element you want to personalize.
-            The AI CRO script will automatically find these elements and apply personalization based on your test configurations.
+            Add the <code>data-aicro</code> attribute to any HTML element you want to explicitly personalize.
+            The AI CRO script can also automatically detect important elements without this attribute.
           </p>
         </div>
       </section>
@@ -89,6 +90,15 @@ export default function DocumentationPage() {
   gtm: {                      // Google Tag Manager configuration
     enabled: true,
     dataLayerName: 'dataLayer'
+  },
+  autoDetection: {            // Automatic element detection
+    enabled: true,
+    headings: true,
+    buttons: true,
+    images: false,
+    callToAction: true,
+    productDescriptions: true,
+    banners: true
   }
 });`}
             </code>
@@ -109,6 +119,83 @@ AICRO.personalize('#main-headline');`}
           </div>
           <p className="text-gray-700">
             You can manually specify elements to personalize using CSS selectors, instead of or in addition to using the data-aicro attribute.
+          </p>
+        </div>
+      </section>
+
+      <section id="automatic" className="mb-10 p-6 bg-white rounded-lg shadow">
+        <h2 className="text-2xl font-bold mb-4">Automatic Personalization</h2>
+        
+        <p className="text-gray-700 mb-4">
+          AI CRO can automatically detect and personalize important elements on your website without requiring explicit markup.
+        </p>
+        
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">How It Works</h3>
+          <p className="text-gray-700">
+            When enabled, the auto-detection system will:
+          </p>
+          <ul className="list-disc list-inside ml-4 space-y-2 mt-2">
+            <li>Identify important headings (H1, H2)</li>
+            <li>Detect call-to-action buttons and links</li>
+            <li>Find product descriptions and key paragraphs</li>
+            <li>Locate banner and hero sections</li>
+            <li>Watch for dynamically added content</li>
+          </ul>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Configuring Auto-Detection</h3>
+          <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
+            <code className="text-sm">
+{`// Configure which elements to auto-detect
+AICRO.configureAutoDetection({
+  enabled: true,
+  headings: true,      // H1, H2 elements
+  buttons: true,       // Buttons and button-like elements
+  images: false,       // Don't auto-detect images for personalization
+  callToAction: true,  // CTA elements based on context
+  productDescriptions: true,  // Product description paragraphs
+  banners: true        // Hero/banner sections
+});`}
+            </code>
+          </div>
+          <p className="text-gray-700">
+            You can enable or disable specific types of auto-detection to suit your needs.
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Custom Personalization Rules</h3>
+          <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
+            <code className="text-sm">
+{`// Add a custom rule to find elements to personalize
+AICRO.addPersonalizationRule(function() {
+  // Return an array of DOM elements to personalize
+  return Array.from(document.querySelectorAll('.special-offer'));
+});
+
+// More complex example with targeting
+AICRO.addPersonalizationRule(function() {
+  // Find all price elements and personalize those above $100
+  return Array.from(document.querySelectorAll('.price'))
+    .filter(el => {
+      const price = parseFloat(el.textContent.replace(/[^0-9.]/g, ''));
+      return price > 100;
+    });
+});`}
+            </code>
+          </div>
+          <p className="text-gray-700">
+            Custom rules allow you to define your own logic for finding elements to personalize based on your specific website structure.
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Handling Dynamic Content</h3>
+          <p className="text-gray-700">
+            AI CRO automatically watches for dynamically added content using a MutationObserver. This means that elements added to the page
+            after initial load (like from AJAX requests or React updates) will still be personalized according to your rules.
           </p>
         </div>
       </section>
