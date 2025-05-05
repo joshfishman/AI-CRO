@@ -4,13 +4,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faMicrophone,
-  faStop,
-  faSpinner,
-  faUpload,
-} from "@fortawesome/free-solid-svg-icons";
+import { MdMic, MdStop, MdSync, MdFileUpload } from "react-icons/md";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 
@@ -314,12 +308,11 @@ export const SpeechToTextArea = forwardRef<
               disabled={isTranscribing || isUploading}
             >
               {isTranscribing ? (
-                <FontAwesomeIcon icon={faSpinner} spin />
+                <MdSync className="animate-spin" />
               ) : (
-                <FontAwesomeIcon
-                  icon={isRecording ? faStop : faMicrophone}
-                  size={isRecording ? "2x" : "1x"}
-                />
+                isRecording ? 
+                <MdStop size={24} /> : 
+                <MdMic size={isRecording ? 24 : 20} />
               )}
             </button>
             {onSubmit && (
