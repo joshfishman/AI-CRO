@@ -1,30 +1,22 @@
 export async function OPTIONS(request) {
-  const origin = request.headers.get('origin') || '*';
-  
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400'
     }
   });
 }
 
 export async function POST(request) {
-  // Get the origin from request headers
-  const origin = request.headers.get('origin') || '*';
-  
   // Set CORS headers to allow requests from any domain
   const headers = {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true',
-    'Content-Type': 'application/json',
-    'Cross-Origin-Resource-Policy': 'cross-origin'
+    'Content-Type': 'application/json'
   };
 
   try {
