@@ -19,4 +19,9 @@ const createContext = cache(async () => {
   });
 });
 
-export const api = createCaller(createContext);
+export const api = {
+  async query(path: string[], ...args: unknown[]) {
+    const caller = createCaller(await createContext());
+    return (caller as any)[path[0]]?.[path[1]]?.(...args);
+  },
+};
