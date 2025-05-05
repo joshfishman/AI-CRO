@@ -1,3 +1,15 @@
+export async function OPTIONS(request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    }
+  });
+}
+
 export async function POST(request) {
   // Set CORS headers to allow requests from any domain
   const headers = {
@@ -6,11 +18,6 @@ export async function POST(request) {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   };
-
-  // Handle OPTIONS preflight request
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers });
-  }
 
   try {
     const data = await request.json();

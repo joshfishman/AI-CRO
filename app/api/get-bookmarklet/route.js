@@ -1,4 +1,25 @@
+export async function OPTIONS(request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    }
+  });
+}
+
 export async function GET() {
+  // Set CORS headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Cache-Control': 'max-age=3600'
+  };
+
   // Use absolute URL for production or fallback to localhost for development
   const host = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -52,7 +73,7 @@ export async function GET() {
   // Encode the script as a javascript URL (this is the bookmarklet format)
   const bookmarkletCode = `javascript:${encodeURIComponent(bookmarkletScript)}`;
 
-  return Response.json({
+  return new Response(JSON.stringify({
     code: bookmarkletCode
-  });
+  }), { headers });
 } 

@@ -1,10 +1,22 @@
+export async function OPTIONS(request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    }
+  });
+}
+
 export async function GET(request) {
   // Set CORS headers to allow the script to be loaded from any domain
   const headers = {
     'Content-Type': 'application/javascript',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Cache-Control': 'max-age=3600'
   };
 
@@ -152,6 +164,8 @@ export async function GET(request) {
           headers: {
             'Content-Type': 'application/json'
           },
+          mode: 'cors',
+          credentials: 'omit',
           body: JSON.stringify({
             url,
             selector,
@@ -230,6 +244,8 @@ export async function GET(request) {
           headers: {
             'Content-Type': 'application/json'
           },
+          mode: 'cors',
+          credentials: 'omit',
           body: JSON.stringify({
             testId: testData.testId,
             variantId: testData.variantId,
