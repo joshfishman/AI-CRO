@@ -6,10 +6,11 @@ import { Metadata } from "next";
 import ClientProvider from "@/components/ClientProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ThemeAwareToast } from "@/components/theme/ThemeAwareToast";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "",
-  description: "",
+  title: "AI CRO - Website Personalization Platform",
+  description: "AI-powered Conversion Rate Optimization platform for your website",
   icons: {
     icon: "/favicon.ico",
   },
@@ -22,11 +23,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen bg-gray-50">
         <ThemeProvider defaultTheme="system" enableSystem>
           <ClientProvider>
             <TRPCReactProvider>
-              {children}
+              <Header />
+              <main className="container mx-auto px-4 py-8">
+                {children}
+              </main>
               <ThemeAwareToast />
             </TRPCReactProvider>
           </ClientProvider>

@@ -983,279 +983,518 @@ export async function GET(request) {
           this.audienceInfo = document.getElementById('aicro-audience').value;
           this.intentInfo = document.getElementById('aicro-intent').value;
           
-          // Show loading state
-          const personalizeBtn = document.getElementById('aicro-personalize-btn');
-          const originalText = personalizeBtn.textContent;
-          personalizeBtn.textContent = 'Processing...';
-          personalizeBtn.disabled = true;
-          
           // Store page-level audience and intent in the config
           config.pageAudience = this.audienceInfo;
           config.pageIntent = this.intentInfo;
           
-          // Personalize each element with the same page-level audience and intent
-          const promises = this.selectedElements.map(item => {
-            return new Promise((resolve) => {
-              AICRO.personalize(item.selector, {
-                attributes: {
-                  pageAudience: this.audienceInfo,
-                  pageIntent: this.intentInfo
-                }
-              });
-              // Resolve after a short delay to avoid overloading
-              setTimeout(resolve, 100);
-            });
-          });
+          // Show element-specific UI to generate options (don't instantly personalize)
+          this._showElementWorkspace();
+        },
+        
+        // Show workspace UI for managing element-specific prompts and options
+        _showElementWorkspace: function() {
+          // Create the workspace container
+          const workspace = document.createElement('div');
+          workspace.id = 'aicro-element-workspace';
+          workspace.style.position = 'fixed';
+          workspace.style.top = '0';
+          workspace.style.right = '0';
+          workspace.style.width = '400px';
+          workspace.style.height = '100vh';
+          workspace.style.backgroundColor = 'white';
+          workspace.style.boxShadow = '-5px 0 15px rgba(0,0,0,0.1)';
+          workspace.style.zIndex = '999999';
+          workspace.style.display = 'flex';
+          workspace.style.flexDirection = 'column';
+          workspace.style.fontFamily = 'Arial, sans-serif';
+          workspace.style.fontSize = '14px';
+          workspace.style.color = '#333';
+          workspace.style.transition = 'transform 0.3s ease-in-out';
           
-          // When all personalization requests are sent
-          Promise.all(promises).then(() => {
-            // Exit selector mode
-            this.stop();
+          // Create workspace header
+          const header = document.createElement('div');
+          header.style.padding = '16px';
+          header.style.borderBottom = '1px solid #eee';
+          header.style.display = 'flex';
+          header.style.justifyContent = 'space-between';
+          header.style.alignItems = 'center';
+          
+          header.innerHTML = \`
+            <h3 style="margin:0;font-size:18px;font-weight:600;">Content Variations</h3>
+            <button id="aicro-close-workspace" style="background:none;border:none;cursor:pointer;color:#999;font-size:20px;">×</button>
+          \`;
+          
+          workspace.appendChild(header);
+          
+          // Create elements list
+          const elementsList = document.createElement('div');
+          elementsList.style.flex = '0 0 auto';
+          elementsList.style.padding = '16px';
+          elementsList.style.borderBottom = '1px solid #eee';
+          elementsList.style.backgroundColor = '#f9f9f9';
+          
+          let elementsListHTML = \`
+            <h4 style="margin:0 0 8px 0;font-size:14px;font-weight:600;">Selected Elements (${this.selectedElements.length})</h4>
+            <div style="max-height:120px;overflow-y:auto;">
+          \`;
+          
+          this.selectedElements.forEach((item, index) => {
+            const content = item.element.textContent.trim().substring(0, 30) + (item.element.textContent.trim().length > 30 ? '...' : '');
+            const isActive = index === 0 ? 'background-color:#ebf5ff;border-color:#2196F3;' : '';
             
-            // Show success message
-            const notice = document.createElement('div');
-            notice.style.position = 'fixed';
-            notice.style.bottom = '20px';
-            notice.style.right = '20px';
-            notice.style.background = '#4CAF50';
-            notice.style.color = 'white';
-            notice.style.padding = '16px';
-            notice.style.borderRadius = '4px';
-            notice.style.zIndex = '9999';
-            notice.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-            notice.innerHTML = \`
-              <div style="font-weight:bold;margin-bottom:4px;">Personalization in Progress</div>
-              <div>AI CRO is personalizing \${this.selectedElements.length} elements for your audience</div>
+            elementsListHTML += \`
+              <div class="aicro-element-item" data-index="${index}" style="${isActive}margin-bottom:6px;padding:8px;border-radius:4px;border:1px solid #ddd;cursor:pointer;">
+                <div style="font-weight:500;font-size:13px;">${item.element.tagName.toLowerCase()}</div>
+                <div style="font-size:12px;color:#666;margin-top:2px;">${content}</div>
+              </div>
             \`;
-            
-            document.body.appendChild(notice);
-            
-            // Remove notice after 5 seconds
-            setTimeout(() => {
-              notice.style.opacity = '0';
-              notice.style.transition = 'opacity 0.5s';
-              setTimeout(() => {
-                if (notice.parentNode) {
-                  document.body.removeChild(notice);
-                }
-              }, 500);
-            }, 5000);
           });
-        },
-        
-        // Auto-select important elements on the page with enhanced capabilities
-        _autoSelectElements: function() {
-          // Clear current selections
-          this._clearSelectedElements();
           
-          // Find important elements by type
-          const headings = Array.from(document.querySelectorAll('h1, h2')).filter(el => this._isTargetableElement(el));
-          const buttons = Array.from(document.querySelectorAll('button, a.btn, .button, .cta, a[class*="btn"]')).filter(el => this._isTargetableElement(el));
-          const paragraphs = Array.from(document.querySelectorAll('p.lead, p.intro, p[class*="description"]')).filter(el => this._isTargetableElement(el));
-          const images = Array.from(document.querySelectorAll('img[class*="hero"], img[class*="banner"], img[role="banner"]')).filter(el => this._isTargetableElement(el));
-          const ctaForms = Array.from(document.querySelectorAll('form[class*="signup"], form[class*="newsletter"], form[id*="contact"]')).filter(el => this._isTargetableElement(el));
+          elementsListHTML += '</div>';
+          elementsList.innerHTML = elementsListHTML;
+          workspace.appendChild(elementsList);
           
-          // Group elements by type for UI organization
-          const groups = {
-            'Headings': headings,
-            'Buttons': buttons,
-            'Paragraphs': paragraphs,
-            'Images': images,
-            'Forms': ctaForms
-          };
+          // Create element editing area (start with first element)
+          const editingArea = document.createElement('div');
+          editingArea.id = 'aicro-editing-area';
+          editingArea.style.flex = '1';
+          editingArea.style.padding = '16px';
+          editingArea.style.overflowY = 'auto';
+          editingArea.style.display = 'flex';
+          editingArea.style.flexDirection = 'column';
           
-          // Show selection dialog with grouped elements
-          this._showGroupSelectionDialog(groups);
-        },
-        
-        // Show a dialog with grouped elements for selection
-        _showGroupSelectionDialog: function(groups) {
-          // Create the dialog
-          const dialog = document.createElement('div');
-          dialog.id = 'aicro-group-selection';
-          dialog.style.position = 'fixed';
-          dialog.style.top = '50%';
-          dialog.style.left = '50%';
-          dialog.style.transform = 'translate(-50%, -50%)';
-          dialog.style.width = '600px';
-          dialog.style.maxHeight = '80vh';
-          dialog.style.backgroundColor = 'white';
-          dialog.style.borderRadius = '8px';
-          dialog.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
-          dialog.style.zIndex = '999999';
-          dialog.style.fontFamily = 'Arial, sans-serif';
-          dialog.style.fontSize = '14px';
-          dialog.style.color = '#333';
-          dialog.style.padding = '24px';
-          dialog.style.overflowY = 'auto';
+          workspace.appendChild(editingArea);
           
-          // Create dialog content
-          let dialogContent = "";
+          // Create actions area
+          const actionsArea = document.createElement('div');
+          actionsArea.style.padding = '16px';
+          actionsArea.style.borderTop = '1px solid #eee';
+          actionsArea.style.display = 'flex';
+          actionsArea.style.justifyContent = 'space-between';
           
-          // Add header
-          dialogContent += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
-          dialogContent += '<h3 style="margin:0;font-size:18px;font-weight:600;">Select Elements by Type</h3>';
-          dialogContent += '<button id="aicro-close-group-dialog" style="background:none;border:none;cursor:pointer;color:#999;font-size:18px;">×</button>';
-          dialogContent += '</div>';
-          dialogContent += '<p style="margin-bottom:16px;color:#666;">Choose elements to personalize or use "Select All" for entire groups.</p>';
+          actionsArea.innerHTML = \`
+            <button id="aicro-back-btn" style="padding:8px 16px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;">Back</button>
+            <button id="aicro-finish-btn" style="padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Save & Exit</button>
+          \`;
           
-          // Create groups section
-          for (const [groupName, elements] of Object.entries(groups)) {
-            if (elements.length === 0) continue;
-            
-            // Add group header
-            dialogContent += '<div style="margin-bottom:24px;border:1px solid #eee;border-radius:6px;overflow:hidden;">';
-            dialogContent += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f9f9f9;border-bottom:1px solid #eee;">';
-            dialogContent += '<h4 style="margin:0;font-size:16px;color:#333;">' + groupName + ' (' + elements.length + ')</h4>';
-            dialogContent += '<label style="display:flex;align-items:center;cursor:pointer;">';
-            dialogContent += '<input type="checkbox" class="aicro-group-select" data-group="' + groupName + '" style="margin-right:6px;">';
-            dialogContent += '<span>Select All</span>';
-            dialogContent += '</label>';
-            dialogContent += '</div>';
-            dialogContent += '<div style="max-height:200px;overflow-y:auto;padding:12px;">';
-            
-            // Add elements to the group
-            elements.forEach((element, index) => {
-              // Get a preview of the element's content
-              let content = element.textContent.trim();
-              if (content.length > 40) {
-                content = content.substring(0, 37) + '...';
-              }
-              
-              // For images, show alt text or src
-              if (element.tagName.toLowerCase() === 'img') {
-                content = element.alt || element.src.split('/').pop();
-              }
-              
-              // Add border-top style for all but the first element
-              const borderStyle = index > 0 ? 'border-top:1px solid #f0f0f0;' : '';
-              
-              dialogContent += '<div style="display:flex;align-items:center;padding:8px;' + borderStyle + '">';
-              dialogContent += '<label style="display:flex;align-items:center;cursor:pointer;flex:1;">';
-              dialogContent += '<input type="checkbox" class="aicro-element-select" data-group="' + groupName + '" data-index="' + index + '" style="margin-right:8px;">';
-              dialogContent += '<span style="font-size:13px;font-weight:500;">' + element.tagName.toLowerCase() + '</span>';
-              dialogContent += '<span style="margin-left:8px;font-size:12px;color:#666;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + content + '</span>';
-              dialogContent += '</label>';
-              dialogContent += '<button class="aicro-highlight-element" data-group="' + groupName + '" data-index="' + index + '" style="padding:2px 6px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Preview</button>';
-              dialogContent += '</div>';
-            });
-            
-            // Close the group containers
-            dialogContent += '</div>'; // Close inner div
-            dialogContent += '</div>'; // Close group div
-          }
+          workspace.appendChild(actionsArea);
           
-          // Add action buttons
-          dialogContent += '<div style="display:flex;justify-content:space-between;margin-top:16px;">';
-          dialogContent += '<button id="aicro-cancel-selection" style="padding:8px 16px;background:#f1f1f1;border:none;border-radius:4px;cursor:pointer;">Cancel</button>';
-          dialogContent += '<button id="aicro-apply-selection" style="padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Apply Selection</button>';
-          dialogContent += '</div>';
-          
-          // Set dialog content
-          dialog.innerHTML = dialogContent;
-          
-          // Add dialog to page
-          document.body.appendChild(dialog);
+          // Add workspace to the page
+          document.body.appendChild(workspace);
           
           // Add event listeners
-          document.getElementById('aicro-close-group-dialog').addEventListener('click', () => {
-            document.body.removeChild(dialog);
+          document.getElementById('aicro-close-workspace').addEventListener('click', () => {
+            document.body.removeChild(workspace);
           });
           
-          document.getElementById('aicro-cancel-selection').addEventListener('click', () => {
-            document.body.removeChild(dialog);
+          document.getElementById('aicro-back-btn').addEventListener('click', () => {
+            document.body.removeChild(workspace);
           });
           
-          // Group select all checkboxes
-          const groupCheckboxes = dialog.querySelectorAll('.aicro-group-select');
-          groupCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-              const group = e.target.dataset.group;
-              const isChecked = e.target.checked;
+          document.getElementById('aicro-finish-btn').addEventListener('click', () => {
+            this._savePersonalizationChanges();
+            document.body.removeChild(workspace);
+          });
+          
+          // Add element selection event listeners
+          const elementItems = workspace.querySelectorAll('.aicro-element-item');
+          elementItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+              const index = parseInt(e.currentTarget.dataset.index);
+              this._loadElementEditor(index);
               
-              // Select/deselect all elements in the group
-              dialog.querySelectorAll('.aicro-element-select[data-group="' + group + '"]').forEach(cb => {
-                cb.checked = isChecked;
+              // Update active state
+              elementItems.forEach(el => {
+                el.style.backgroundColor = '';
+                el.style.borderColor = '#ddd';
               });
+              e.currentTarget.style.backgroundColor = '#ebf5ff';
+              e.currentTarget.style.borderColor = '#2196F3';
             });
           });
           
-          // Element highlight buttons
-          const highlightButtons = dialog.querySelectorAll('.aicro-highlight-element');
-          highlightButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-              const group = e.target.dataset.group;
-              const index = parseInt(e.target.dataset.index);
-              
-              // Temporarily highlight the element
-              const element = groups[group][index];
-              this._previewElement(element);
-            });
-          });
+          // Load editor for the first element by default
+          this._loadElementEditor(0);
+        },
+        
+        // Load the editor UI for a specific element
+        _loadElementEditor: function(elementIndex) {
+          const editingArea = document.getElementById('aicro-editing-area');
+          const element = this.selectedElements[elementIndex];
           
-          // Apply selection button
-          document.getElementById('aicro-apply-selection').addEventListener('click', () => {
-            // Collect all selected elements
-            const selectedElements = [];
-            
-            for (const [groupName, elements] of Object.entries(groups)) {
-              const checkboxes = dialog.querySelectorAll('.aicro-element-select[data-group="' + groupName + '"]');
-              
-              checkboxes.forEach((checkbox, index) => {
-                if (checkbox.checked) {
-                  selectedElements.push(elements[index]);
+          if (!editingArea || !element) return;
+          
+          // Get element details
+          const tagName = element.element.tagName.toLowerCase();
+          const text = element.element.innerText || element.element.textContent || '';
+          const html = element.element.innerHTML || '';
+          const selector = element.selector;
+          
+          // Clear editing area
+          editingArea.innerHTML = '';
+          
+          // Create element preview
+          const preview = document.createElement('div');
+          preview.style.marginBottom = '16px';
+          preview.style.padding = '12px';
+          preview.style.border = '1px solid #ddd';
+          preview.style.borderRadius = '4px';
+          preview.style.backgroundColor = '#f9f9f9';
+          
+          preview.innerHTML = \`
+            <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:500;font-size:13px;">Element Preview</span>
+              <span style="font-size:12px;color:#666;">${tagName}</span>
+            </div>
+            <div id="aicro-preview-content" style="padding:8px;border:1px solid #eee;background:white;border-radius:4px;word-break:break-word;">${html}</div>
+          \`;
+          
+          editingArea.appendChild(preview);
+          
+          // Create generation prompt
+          const promptSection = document.createElement('div');
+          promptSection.style.marginBottom = '20px';
+          
+          const elementTypeDesc = this._getElementDescription(tagName, text);
+          const defaultPrompt = this._generateDefaultPrompt(elementTypeDesc, text, this.audienceInfo, this.intentInfo);
+          
+          promptSection.innerHTML = \`
+            <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:500;font-size:13px;">Customization Prompt</span>
+              <button id="aicro-generate-btn" style="padding:4px 10px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Generate Options</button>
+            </div>
+            <textarea id="aicro-gen-prompt" style="width:100%;height:100px;padding:8px;border:1px solid #ddd;border-radius:4px;font-family:inherit;font-size:13px;resize:vertical;">${defaultPrompt}</textarea>
+          \`;
+          
+          editingArea.appendChild(promptSection);
+          
+          // Create options section (initially empty)
+          const optionsSection = document.createElement('div');
+          optionsSection.id = 'aicro-options-section';
+          optionsSection.style.marginBottom = '16px';
+          
+          optionsSection.innerHTML = \`
+            <div style="margin-bottom:8px;font-weight:500;font-size:13px;">Content Options</div>
+            <div id="aicro-options-list" style="font-size:13px;color:#666;font-style:italic;text-align:center;padding:20px;">
+              Click "Generate Options" to create content variations
+            </div>
+          \`;
+          
+          editingArea.appendChild(optionsSection);
+          
+          // Add event listeners
+          document.getElementById('aicro-generate-btn').addEventListener('click', () => {
+            this._generateContentOptions(elementIndex);
+          });
+        },
+        
+        // Generate description based on element type
+        _getElementDescription: function(tagName, text) {
+          switch (tagName) {
+            case 'h1': return 'primary heading';
+            case 'h2': return 'secondary heading';
+            case 'h3': 
+            case 'h4': 
+            case 'h5': 
+            case 'h6': return 'heading';
+            case 'p': return 'paragraph';
+            case 'button': return 'button';
+            case 'a': return text.length < 20 ? 'call-to-action link' : 'link';
+            case 'li': return 'list item';
+            case 'img': return 'image alt text';
+            case 'span': return 'text snippet';
+            default: return 'content element';
+          }
+        },
+        
+        // Generate a default prompt for content variations
+        _generateDefaultPrompt: function(elementType, originalText, audience, intent) {
+          let prompt = \`Generate 5 alternative versions for this \${elementType}\`;
+          
+          // Add original text
+          if (originalText) {
+            prompt += \`:\n\n"\${originalText.trim()}"\`;
+          }
+          
+          // Add audience if available
+          if (audience) {
+            prompt += \`\n\nTarget audience: \${audience}\`;
+          }
+          
+          // Add intent if available
+          if (intent) {
+            prompt += \`\n\nContent goal: \${intent}\`;
+          }
+          
+          // Add guidance based on element type
+          if (elementType.includes('heading')) {
+            prompt += '\n\nMake the headings compelling, concise, and action-oriented.';
+          } else if (elementType.includes('button') || elementType.includes('call-to-action')) {
+            prompt += '\n\nMake the text clear, compelling, and action-oriented. Keep it concise.';
+          } else if (elementType.includes('paragraph')) {
+            prompt += '\n\nMaintain approximately the same length while making the content more engaging and persuasive.';
+          }
+          
+          return prompt;
+        },
+        
+        // Generate content options based on the prompt
+        _generateContentOptions: function(elementIndex) {
+          const element = this.selectedElements[elementIndex];
+          const prompt = document.getElementById('aicro-gen-prompt').value;
+          const optionsList = document.getElementById('aicro-options-list');
+          
+          if (!element || !optionsList) return;
+          
+          // Show loading state
+          optionsList.innerHTML = \`
+            <div style="text-align:center;padding:20px;">
+              <div style="margin-bottom:10px;font-style:normal;">Generating options...</div>
+              <div style="display:inline-block;width:20px;height:20px;border:2px solid #2196F3;border-radius:50%;border-top-color:transparent;animation:aicro-spin 1s linear infinite;"></div>
+            </div>
+            <style>
+              @keyframes aicro-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+          \`;
+          
+          // For demo purposes, generate 5 variations based on the element type
+          // In a real implementation, this would call an AI API
+          setTimeout(() => {
+            this._displayGeneratedOptions(elementIndex, this._generateDemoOptions(element));
+          }, 1500);
+        },
+        
+        // Generate demo options based on element type (simulating AI response)
+        _generateDemoOptions: function(element) {
+          const tagName = element.element.tagName.toLowerCase();
+          const originalText = element.element.innerText || element.element.textContent || '';
+          const options = [];
+          
+          // Different variations based on element type
+          if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3') {
+            // Heading variations
+            options.push(\`Discover \${originalText}\`);
+            options.push(\`\${originalText} - Reimagined for You\`);
+            options.push(\`Experience the Power of \${originalText}\`);
+            options.push(\`Transform Your Results with \${originalText}\`);
+            options.push(\`\${originalText}: Your Ultimate Solution\`);
+          } else if (tagName === 'button' || (tagName === 'a' && originalText.length < 20)) {
+            // Button/CTA variations
+            options.push(\`Get Started Now\`);
+            options.push(\`Try It Free\`);
+            options.push(\`See Results Today\`);
+            options.push(\`Yes, I Want This!\`);
+            options.push(\`Claim Your \${originalText}\`);
+          } else if (tagName === 'p') {
+            // Paragraph variations
+            const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            for (let i = 0; i < 5; i++) {
+              let newText = '';
+              sentences.forEach(sentence => {
+                // Add a variation of the sentence
+                if (sentence.length > 0) {
+                  const words = sentence.split(' ');
+                  if (i % 2 === 0 && words.length > 3) {
+                    // Add an adjective
+                    const adjectives = ['amazing', 'excellent', 'outstanding', 'remarkable', 'exceptional'];
+                    words.splice(2, 0, adjectives[i % adjectives.length]);
+                  }
+                  if (i % 3 === 0) {
+                    // Make it more direct
+                    words.unshift('You\'ll find that');
+                  }
+                  newText += words.join(' ') + '. ';
                 }
               });
+              options.push(newText.trim());
+            }
+          } else {
+            // Generic text variations
+            for (let i = 0; i < 5; i++) {
+              options.push(\`Option \${i+1}: \${originalText} (variation \${i+1})\`);
+            }
+          }
+          
+          return options;
+        },
+        
+        // Display generated options
+        _displayGeneratedOptions: function(elementIndex, options) {
+          const element = this.selectedElements[elementIndex];
+          const optionsList = document.getElementById('aicro-options-list');
+          
+          if (!element || !optionsList || !options || options.length === 0) return;
+          
+          // Store options with the element
+          element.variations = options;
+          
+          // Build options HTML
+          let optionsHTML = '';
+          
+          options.forEach((option, i) => {
+            optionsHTML += \`
+              <div class="aicro-option-item" style="margin-bottom:12px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
+                <div style="padding:8px;background:#f9f9f9;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-weight:500;font-size:12px;">Option \${i+1}</span>
+                  <div>
+                    <button class="aicro-preview-option" data-option="${i}" style="padding:3px 8px;background:#f1f1f1;border:none;border-radius:3px;margin-right:5px;font-size:11px;cursor:pointer;">Preview</button>
+                    <button class="aicro-select-option" data-option="${i}" style="padding:3px 8px;background:#2196F3;color:white;border:none;border-radius:3px;font-size:11px;cursor:pointer;">Select</button>
+                  </div>
+                </div>
+                <div style="padding:8px;word-break:break-word;">${option}</div>
+              </div>
+            \`;
+          });
+          
+          // Update the options list
+          optionsList.innerHTML = optionsHTML;
+          
+          // Add event listeners
+          const previewButtons = optionsList.querySelectorAll('.aicro-preview-option');
+          previewButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const optionIndex = parseInt(e.target.dataset.option);
+              this._previewOption(elementIndex, optionIndex);
+            });
+          });
+          
+          const selectButtons = optionsList.querySelectorAll('.aicro-select-option');
+          selectButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const optionIndex = parseInt(e.target.dataset.option);
+              this._selectOption(elementIndex, optionIndex);
+            });
+          });
+        },
+        
+        // Preview an option
+        _previewOption: function(elementIndex, optionIndex) {
+          const element = this.selectedElements[elementIndex];
+          if (!element || !element.variations || !element.variations[optionIndex]) return;
+          
+          // Update the preview content
+          const previewContent = document.getElementById('aicro-preview-content');
+          if (previewContent) {
+            // Store original content if not already stored
+            if (!element.originalPreviewContent) {
+              element.originalPreviewContent = previewContent.innerHTML;
             }
             
-            // Select all elements
-            selectedElements.forEach(element => {
-              this._toggleElementSelection(element, true);
-            });
-            
-            // Remove dialog
-            document.body.removeChild(dialog);
-            
-            // Show confirmation
-            if (selectedElements.length > 0) {
-              log("Selected", selectedElements.length, "elements");
+            // Show the option content
+            previewContent.innerHTML = element.variations[optionIndex];
+          }
+        },
+        
+        // Select an option as the chosen variation
+        _selectOption: function(elementIndex, optionIndex) {
+          const element = this.selectedElements[elementIndex];
+          if (!element || !element.variations || !element.variations[optionIndex]) return;
+          
+          // Store the selected option
+          element.selectedVariation = element.variations[optionIndex];
+          
+          // Update the preview content
+          const previewContent = document.getElementById('aicro-preview-content');
+          if (previewContent) {
+            previewContent.innerHTML = element.selectedVariation;
+          }
+          
+          // Highlight the selected option
+          const optionItems = document.querySelectorAll('.aicro-option-item');
+          optionItems.forEach((item, i) => {
+            if (i === optionIndex) {
+              item.style.borderColor = '#4CAF50';
+              item.style.boxShadow = '0 0 5px rgba(76, 175, 80, 0.3)';
             } else {
-              alert("No elements selected. Please select at least one element to personalize.");
+              item.style.borderColor = '#ddd';
+              item.style.boxShadow = 'none';
             }
           });
         },
         
-        // Temporarily highlight an element to preview it
-        _previewElement: function(element) {
-          // Create highlight overlay
-          const rect = element.getBoundingClientRect();
-          const overlay = document.createElement('div');
+        // Save all personalization changes
+        _savePersonalizationChanges: function() {
+          const elementsToPersonalize = [];
           
-          overlay.style.position = 'fixed';
-          overlay.style.top = rect.top + 'px';
-          overlay.style.left = rect.left + 'px';
-          overlay.style.width = rect.width + 'px';
-          overlay.style.height = rect.height + 'px';
-          overlay.style.border = '3px solid #4CAF50';
-          overlay.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
-          overlay.style.zIndex = '99999';
-          overlay.style.pointerEvents = 'none';
-          overlay.style.transition = 'opacity 0.3s';
+          // Find elements with selected variations
+          this.selectedElements.forEach(element => {
+            if (element.selectedVariation) {
+              elementsToPersonalize.push({
+                selector: element.selector,
+                content: element.selectedVariation
+              });
+            }
+          });
           
-          document.body.appendChild(overlay);
+          if (elementsToPersonalize.length === 0) {
+            alert('No content variations were selected. Please select at least one option to continue.');
+            return;
+          }
           
-          // Scroll element into view if needed
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Show loading notification
+          const notification = document.createElement('div');
+          notification.style.position = 'fixed';
+          notification.style.bottom = '20px';
+          notification.style.right = '20px';
+          notification.style.background = '#4CAF50';
+          notification.style.color = 'white';
+          notification.style.padding = '16px';
+          notification.style.borderRadius = '4px';
+          notification.style.zIndex = '9999';
+          notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+          notification.innerHTML = \`
+            <div style="font-weight:bold;margin-bottom:4px;">Saving Changes</div>
+            <div>Personalizing \${elementsToPersonalize.length} elements...</div>
+          \`;
           
-          // Remove highlight after a short delay
+          document.body.appendChild(notification);
+          
+          // Process each element
+          let processed = 0;
+          
+          elementsToPersonalize.forEach(item => {
+            // Find the element
+            const elements = document.querySelectorAll(item.selector);
+            
+            elements.forEach(el => {
+              // Update the content
+              el.innerHTML = item.content;
+              
+              // Mark as personalized
+              el.setAttribute('data-aicro-personalized', 'true');
+            });
+            
+            // Track as processed
+            processed++;
+            
+            // For demo, we'll just log this instead of sending to API
+            log("Personalized element:", item.selector);
+          });
+          
+          // Update notification after processing
           setTimeout(() => {
-            overlay.style.opacity = '0';
+            notification.innerHTML = \`
+              <div style="font-weight:bold;margin-bottom:4px;">Changes Applied</div>
+              <div>Successfully personalized \${processed} elements</div>
+            \`;
+            
+            // Remove after a delay
             setTimeout(() => {
-              if (overlay.parentNode) {
-                document.body.removeChild(overlay);
-              }
-            }, 300);
-          }, 1500);
+              notification.style.opacity = '0';
+              notification.style.transition = 'opacity 0.5s';
+              setTimeout(() => {
+                if (notification.parentNode) {
+                  document.body.removeChild(notification);
+                }
+              }, 500);
+            }, 3000);
+          }, 1000);
+          
+          // Clean up UI
+          this.stop();
         }
       };
       

@@ -1,2 +1,4 @@
 - always push to git not to vercel
 - commit and push changes after each task
+- Check if a package is needed before you install a new one
+- Always Build acccording to Project Plan.md, if we need to update it ask me.
