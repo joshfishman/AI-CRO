@@ -1,21 +1,9 @@
 import React from "react";
 import ClientProvider from "@/components/ClientProvider";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-async function getSession() {
-  try {
-    const session = await getServerSession(authOptions);
-    return session;
-  } catch (error) {
-    console.error("Failed to get session:", error);
-    return null;
-  }
-}
 
 export default function Home() {
   return (
