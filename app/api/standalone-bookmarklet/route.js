@@ -54,9 +54,9 @@ export async function GET(request) {
       var selectorUI = null;
       var selectorStyle = null;
       
-      // Initialize window.AICRO namespace
-      window.AICRO = window.AICRO || {};
-      window.AICRO.selector = {
+      // Initialize a simple standalone selector namespace
+      // This is NOT connected to the main AICRO client script
+      window.AICRO_SELECTOR = {
         active: true,
         apiHost: '${host}'
       };
@@ -710,8 +710,8 @@ export async function GET(request) {
         
         // Reset state
         window.AICRO_SELECTOR_ACTIVE = false;
-        if (window.AICRO && window.AICRO.selector) {
-          window.AICRO.selector.active = false;
+        if (window.AICRO_SELECTOR) {
+          window.AICRO_SELECTOR.active = false;
         }
       }
     })();
