@@ -124,7 +124,22 @@ export default function Home() {
         <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
         <ol className="list-decimal list-inside space-y-3">
           <li className="ml-4">
-            <span className="font-medium">Install the Bookmarklet:</span> Visit the <Link href="/bookmarklet" className="text-blue-600 hover:text-blue-800">Bookmarklet page</Link> to add the element selector to your browser.
+            <span className="font-medium">Install the Bookmarklet:</span> Choose the option that works best for you:
+            <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
+              <li>
+                <Link href="/standalone-bookmarklet" className="text-blue-600 hover:text-blue-800">Standalone Bookmarklet</Link> 
+                <span className="text-xs font-medium text-green-600 ml-1">★ RECOMMENDED ★</span> 
+                <span className="text-gray-600 text-sm">(Best for cross-domain use)</span>
+              </li>
+              <li>
+                <Link href="/direct-bookmarklet" className="text-blue-600 hover:text-blue-800">Direct Bookmarklet</Link> 
+                <span className="text-gray-600 text-sm">(Loads selector directly)</span>
+              </li>
+              <li>
+                <Link href="/bookmarklet" className="text-blue-600 hover:text-blue-800">Standard Bookmarklet</Link> 
+                <span className="text-gray-600 text-sm">(Legacy version)</span>
+              </li>
+            </ul>
           </li>
           <li className="ml-4">
             <span className="font-medium">Create Segments:</span> Define your audience using the <Link href="/segments" className="text-blue-600 hover:text-blue-800">Segments page</Link>.
