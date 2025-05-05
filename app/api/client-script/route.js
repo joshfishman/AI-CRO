@@ -592,16 +592,39 @@ export async function GET(request) {
       
       // Check if element has CTA characteristics
       function hasCtaCharacteristics(element) {
-        const text = element.textContent.trim().toLowerCase();
-        const ctaWords = ['sign up', 'register', 'submit', 'subscribe', 'buy', 'purchase', 'order', 'get', 'download', 'try', 'start', 'learn more', 'contact'];
-        
-        const hasCtaText = ctaWords.some(word => text.includes(word));
-        const hasCtaStyle = element.className.toLowerCase().includes('btn') || 
-                           element.className.toLowerCase().includes('button') ||
-                           element.className.toLowerCase().includes('cta') ||
-                           getComputedStyle(element).backgroundColor !== 'rgba(0, 0, 0, 0)';
-        
-        return hasCtaText && hasCtaStyle;
+        try {
+          const text = element.textContent.trim().toLowerCase();
+          const ctaWords = ['sign up', 'register', 'submit', 'subscribe', 'buy', 'purchase', 'order', 'get', 'download', 'try', 'start', 'learn more', 'contact'];
+          
+          const hasCtaText = ctaWords.some(word => text.includes(word));
+          
+          // Get class names safely
+          let classNames = '';
+          if (element.className) {
+            if (typeof element.className === 'string') {
+              classNames = element.className.toLowerCase();
+            } else if (element.className.baseVal) {
+              // For SVG elements className is an SVGAnimatedString with baseVal
+              classNames = element.className.baseVal.toLowerCase();
+            } else {
+              // If className is not a string and has no baseVal, try getAttribute
+              const classAttr = element.getAttribute && element.getAttribute('class');
+              if (classAttr) {
+                classNames = classAttr.toLowerCase();
+              }
+            }
+          }
+          
+          const hasCtaStyle = classNames.includes('btn') || 
+                             classNames.includes('button') ||
+                             classNames.includes('cta') ||
+                             getComputedStyle(element).backgroundColor !== 'rgba(0, 0, 0, 0)';
+          
+          return hasCtaText && hasCtaStyle;
+        } catch (e) {
+          console.error("[AI CRO] Error in hasCtaCharacteristics:", e);
+          return false;
+        }
       }
       
       // Detect product descriptions
@@ -621,13 +644,35 @@ export async function GET(request) {
       
       // Check if element has product description characteristics
       function hasProductDescriptionCharacteristics(element) {
-        const text = element.textContent.trim();
-        
-        // Product descriptions tend to be paragraphs of a certain length
-        return element.tagName.toLowerCase() === 'p' && 
-               text.length > 50 && 
-               text.length < 1000 && 
-               element.className.toLowerCase().includes('desc');
+        try {
+          const text = element.textContent.trim();
+          
+          // Get class names safely
+          let classNames = '';
+          if (element.className) {
+            if (typeof element.className === 'string') {
+              classNames = element.className.toLowerCase();
+            } else if (element.className.baseVal) {
+              // For SVG elements className is an SVGAnimatedString with baseVal
+              classNames = element.className.baseVal.toLowerCase();
+            } else {
+              // If className is not a string and has no baseVal, try getAttribute
+              const classAttr = element.getAttribute && element.getAttribute('class');
+              if (classAttr) {
+                classNames = classAttr.toLowerCase();
+              }
+            }
+          }
+          
+          // Product descriptions tend to be paragraphs of a certain length
+          return element.tagName.toLowerCase() === 'p' && 
+                 text.length > 50 && 
+                 text.length < 1000 && 
+                 classNames.includes('desc');
+        } catch (e) {
+          console.error("[AI CRO] Error in hasProductDescriptionCharacteristics:", e);
+          return false;
+        }
       }
       
       // Detect banners
