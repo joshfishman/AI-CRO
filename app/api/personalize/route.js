@@ -35,8 +35,14 @@ export async function POST(request) {
       userId, 
       originalContent, 
       elementType, 
-      userAttributes = {} 
+      userAttributes = {},
+      skipAutoPersonalization = true // Default to skipping auto-personalization
     } = data;
+    
+    // Skip personalization if requested
+    if (skipAutoPersonalization) {
+      return new Response(JSON.stringify({ personalized: false }), { headers });
+    }
     
     // Extract page-level audience and intent information
     const pageAudience = userAttributes.pageAudience || '';

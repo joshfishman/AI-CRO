@@ -184,7 +184,8 @@ export async function GET(request) {
             userId: config.userId,
             originalContent: elements[0].innerHTML,
             elementType: elements[0].tagName.toLowerCase(),
-            userAttributes: options.attributes || {}
+            userAttributes: options.attributes || {},
+            skipAutoPersonalization: options.skipAutoPersonalization !== false // Skip by default unless explicitly set to false
           })
         })
         .then(response => response.json())
@@ -200,7 +201,62 @@ export async function GET(request) {
             
             // Apply content to all matching elements
             elements.forEach(element => {
-              element.innerHTML = data.content;
+              // Preserve element attributes when updating content
+              if (typeof data.content === 'string' && !data.content.trim().startsWith('<')) {
+                // For text-only content, preserve the existing HTML structure
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = element.innerHTML;
+                
+                // Find all text nodes and replace their content
+                const textNodes = [];
+                const findTextNodes = function(node) {
+                  if (node.nodeType === 3) { // Text node
+                    textNodes.push(node);
+                  } else if (node.nodeType === 1) { // Element node
+                    for (let i = 0; i < node.childNodes.length; i++) {
+                      findTextNodes(node.childNodes[i]);
+                    }
+                  }
+                };
+                
+                findTextNodes(tempDiv);
+                
+                // Replace the first text node content
+                if (textNodes.length > 0) {
+                  textNodes[0].nodeValue = data.content;
+                  element.innerHTML = tempDiv.innerHTML;
+                } else {
+                  // If no text nodes, just set inner text preserving the wrapper
+                  const wrapper = element.cloneNode(false);
+                  wrapper.textContent = data.content;
+                  element.parentNode.replaceChild(wrapper, element);
+                }
+              } else {
+                // For HTML content, try to preserve the element's attributes
+                const originalAttributes = {};
+                for (let i = 0; i < element.attributes.length; i++) {
+                  const attr = element.attributes[i];
+                  originalAttributes[attr.name] = attr.value;
+                }
+                
+                // Update the inner HTML
+                element.innerHTML = data.content;
+                
+                // Apply the original attributes back to the root element
+                if (element.tagName.toLowerCase() === 'div' || 
+                    element.tagName.toLowerCase() === 'span') {
+                  // Only restore attributes that don't conflict with the new content
+                  for (const [name, value] of Object.entries(originalAttributes)) {
+                    // Skip data-aicro attributes
+                    if (name.startsWith('data-aicro')) continue;
+                    
+                    // Don't override existing attributes in the new content
+                    if (!element.hasAttribute(name)) {
+                      element.setAttribute(name, value);
+                    }
+                  }
+                }
+              }
               
               // Mark element as personalized
               element.setAttribute('data-aicro-personalized', 'true');
@@ -322,7 +378,9 @@ export async function GET(request) {
         
         taggedElements.forEach(element => {
           const selector = getUniqueSelector(element);
-          AICRO.personalize(selector);
+          // Only personalize if explicitly requested via data-aicro attribute
+          const skipAuto = element.getAttribute('data-aicro') !== 'personalize';
+          AICRO.personalize(selector, { skipAutoPersonalization: skipAuto });
         });
         
         // 2. Auto-detect important elements if enabled
@@ -409,7 +467,8 @@ export async function GET(request) {
         // Check if the element matches any important element criteria
         if (isImportantElement(element)) {
           const selector = getUniqueSelector(element);
-          AICRO.personalize(selector);
+          // Skip auto-personalization for dynamically detected elements
+          AICRO.personalize(selector, { skipAutoPersonalization: true });
         }
       }
       
@@ -469,7 +528,8 @@ export async function GET(request) {
         log("Auto-detected", importantElements.length, "important elements");
         importantElements.forEach(element => {
           const selector = getUniqueSelector(element);
-          AICRO.personalize(selector);
+          // In auto-detection mode, still skip auto-personalization by default
+          AICRO.personalize(selector, { skipAutoPersonalization: true });
         });
       }
       
@@ -628,7 +688,10 @@ export async function GET(request) {
                 elements.forEach(element => {
                   if (element && element.nodeType === 1) { // Element node
                     const selector = getUniqueSelector(element);
-                    AICRO.personalize(selector);
+                    // Custom rules should specify explicitly if they want personalization
+                    const skipAuto = !element.hasAttribute('data-aicro') || 
+                                     element.getAttribute('data-aicro') !== 'personalize';
+                    AICRO.personalize(selector, { skipAutoPersonalization: skipAuto });
                   }
                 });
               }
