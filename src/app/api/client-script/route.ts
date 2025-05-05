@@ -17,7 +17,11 @@ export async function GET() {
         userId: null,
         debug: false,
         initialized: false,
-        testData: {}
+        testData: {},
+        gtm: {
+          enabled: true,
+          dataLayerName: 'dataLayer'
+        }
       };
       
       // Set user ID
@@ -32,11 +36,41 @@ export async function GET() {
         return this;
       };
       
+      // Configure GTM integration
+      AICRO.configureGTM = function(options = {}) {
+        config.gtm = {
+          ...config.gtm,
+          ...options
+        };
+        return this;
+      };
+      
       // Log if in debug mode
       function log(...args) {
         if (config.debug) {
           console.log("[AI CRO]", ...args);
         }
+      }
+      
+      // Push event to Google Tag Manager
+      function pushToGTM(eventName, eventData) {
+        if (!config.gtm.enabled) return;
+        
+        // Get or create dataLayer
+        const dataLayerName = config.gtm.dataLayerName || 'dataLayer';
+        window[dataLayerName] = window[dataLayerName] || [];
+        
+        // Push event to dataLayer
+        const eventObject = {
+          event: eventName,
+          aicro: {
+            ...eventData,
+            timestamp: new Date().toISOString()
+          }
+        };
+        
+        log("Pushing to GTM:", eventObject);
+        window[dataLayerName].push(eventObject);
       }
       
       // Initialize the personalization engine
@@ -53,6 +87,12 @@ export async function GET() {
         
         // Start personalizing content
         personalizeContent();
+        
+        // Push initialization event to GTM
+        pushToGTM('aicro_initialized', {
+          userId: config.userId,
+          pageUrl: window.location.href
+        });
         
         config.initialized = true;
         return this;
@@ -133,6 +173,18 @@ export async function GET() {
         
         log("Tracking event:", event, "for test:", testData.testId);
         
+        // Push to GTM
+        pushToGTM(event === 'impression' ? 'aicro_impression' : 
+                 (event === 'conversion' ? 'aicro_conversion' : 'aicro_event'), {
+          event: event,
+          testId: testData.testId,
+          variantId: testData.variantId,
+          selector: selector,
+          metadata: metadata,
+          userId: config.userId
+        });
+        
+        // Send to tracking API
         fetch(\`\${config.apiHost}/api/track\`, {
           method: 'POST',
           headers: {
@@ -190,6 +242,64 @@ export async function GET() {
         
         return '[data-aicro-id="' + element.getAttribute('data-aicro-id') + '"]';
       }
+      
+      // Enhanced eCommerce integrations
+      AICRO.ecommerce = {
+        // Product view
+        viewProduct: function(productData, selector) {
+          const testData = selector ? config.testData[selector] : null;
+          
+          pushToGTM('aicro_product_view', {
+            product: productData,
+            testId: testData?.testId,
+            variantId: testData?.variantId
+          });
+          
+          return AICRO;
+        },
+        
+        // Add to cart
+        addToCart: function(productData, selector) {
+          const testData = selector ? config.testData[selector] : null;
+          
+          pushToGTM('aicro_add_to_cart', {
+            product: productData,
+            testId: testData?.testId,
+            variantId: testData?.variantId
+          });
+          
+          // If we have test data, also track as conversion
+          if (testData) {
+            trackEvent('conversion', selector, { 
+              type: 'add_to_cart',
+              product: productData
+            });
+          }
+          
+          return AICRO;
+        },
+        
+        // Purchase
+        purchase: function(orderData) {
+          pushToGTM('aicro_purchase', {
+            order: orderData,
+            activeTests: Object.values(config.testData).map(test => ({
+              testId: test.testId,
+              variantId: test.variantId
+            }))
+          });
+          
+          // Track purchase as conversion for all active tests
+          Object.entries(config.testData).forEach(([selector, test]) => {
+            trackEvent('conversion', selector, { 
+              type: 'purchase',
+              order: orderData
+            });
+          });
+          
+          return AICRO;
+        }
+      };
       
       // Auto-initialize if data-aicro-auto is present
       if (document.querySelector('[data-aicro-auto]')) {
