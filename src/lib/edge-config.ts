@@ -152,7 +152,7 @@ export async function getGlobalSettings(): Promise<GlobalSettings | null> {
 // Update functions
 export async function updateUserConfig(userId: string, data: Partial<UserConfig>): Promise<void> {
   try {
-    const users = await edgeConfig.get<Record<string, UserConfig>>('users') ?? {};
+    const users = await edgeConfig.get('users') ?? {};
     users[userId] = { ...users[userId], ...data };
     await edgeConfig.set('users', users);
   } catch (error) {
@@ -162,7 +162,7 @@ export async function updateUserConfig(userId: string, data: Partial<UserConfig>
 
 export async function updateTestConfig(testId: string, data: Partial<TestConfig>): Promise<void> {
   try {
-    const tests = await edgeConfig.get<Record<string, TestConfig>>('tests') ?? {};
+    const tests = await edgeConfig.get('tests') ?? {};
     tests[testId] = { ...tests[testId], ...data };
     await edgeConfig.set('tests', tests);
   } catch (error) {
@@ -172,7 +172,7 @@ export async function updateTestConfig(testId: string, data: Partial<TestConfig>
 
 export async function updateSegmentConfig(segmentId: string, data: Partial<SegmentConfig>): Promise<void> {
   try {
-    const segments = await edgeConfig.get<Record<string, SegmentConfig>>('segments') ?? {};
+    const segments = await edgeConfig.get('segments') ?? {};
     segments[segmentId] = { ...segments[segmentId], ...data };
     await edgeConfig.set('segments', segments);
   } catch (error) {
@@ -182,7 +182,7 @@ export async function updateSegmentConfig(segmentId: string, data: Partial<Segme
 
 export async function updateGlobalSettings(data: Partial<GlobalSettings>): Promise<void> {
   try {
-    const settings = await edgeConfig.get<GlobalSettings>('settings') ?? {};
+    const settings = await edgeConfig.get('settings') ?? {};
     await edgeConfig.set('settings', { ...settings, ...data });
   } catch (error) {
     console.error('Error updating global settings:', error);
