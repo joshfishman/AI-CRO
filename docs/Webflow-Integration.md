@@ -86,6 +86,66 @@ This error occurs when the initialization code runs before the AI CRO script has
 2. Checks if the init function exists before calling it
 3. Retries initialization if the function isn't available yet
 
+### "missing } after function body" Error
+
+If you see this error in your console, it's likely due to a syntax error in the initialization code. Make sure:
+
+1. All opening brackets `{` have corresponding closing brackets `}`
+2. All functions have proper closing brackets
+3. No semicolons are missing at the end of statements
+
+The code provided in this guide has been verified to be syntactically correct, so make sure you copy it exactly as shown.
+
+### URL and Path Issues
+
+Make sure you're using the correct URL path:
+- Correct: `https://ai-cro-three.vercel.app/api/client-script`
+- Not: `https://ai-cro-three.vercel.app/api/client-scrip`
+- Not: `https://ai-cro-three.vercel.app/api/client-script/simple`
+
+### Ultra-Simple Integration
+
+If you're still having issues, try this ultra-simplified version:
+
+**Head Code:**
+```html
+<script>
+  // Global AICRO object
+  window.AICRO = window.AICRO || {};
+</script>
+<script src="https://ai-cro-three.vercel.app/api/client-script"></script>
+```
+
+**Footer Code:**
+```html
+<script>
+  function initAICRO() {
+    if (window.AICRO && typeof window.AICRO.init === 'function') {
+      window.AICRO.debug(true).init();
+      return true;
+    }
+    return false;
+  }
+
+  // Try to initialize immediately
+  if (!initAICRO()) {
+    // If not ready, try again when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!initAICRO()) {
+        // If still not ready, try a few more times
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+          attempts++;
+          if (initAICRO() || attempts >= 50) {
+            clearInterval(checkInterval);
+          }
+        }, 100);
+      }
+    });
+  }
+</script>
+```
+
 ### Testing the Integration
 
 After installation:
@@ -101,6 +161,7 @@ If the selector isn't working:
 1. Ensure your Webflow site is published
 2. Check that the script is loading (look for network requests to ai-cro-three.vercel.app)
 3. Try using the URL parameter method instead of the bookmarklet
+4. Make sure you're using the correct URL: `https://ai-cro-three.vercel.app/api/client-script` (not client-scrip)
 
 ## Advanced Usage
 
