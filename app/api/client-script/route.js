@@ -23,8 +23,14 @@ export async function GET(request) {
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-cro-three.vercel.app';
   
-  // Check if the bookmarklet helper should be activated
+  // Get possible override from query param
   const url = new URL(request.url);
+  const hostOverride = url.searchParams.get('host');
+  
+  // Final host URL to use, preferring the override if provided
+  const finalHost = hostOverride || host;
+  
+  // Check if the bookmarklet helper should be activated
   const showBookmarklet = url.searchParams.get('bookmarklet') === 'true';
   
   // If the bookmarklet parameter is present, return the bookmarklet helper UI instead
@@ -47,7 +53,7 @@ export async function GET(request) {
         
         // Load the full selector module script
         var script = document.createElement('script');
-        script.src = '${host}/api/selector-module';
+        script.src = '${finalHost}/api/selector-module';
         script.async = true;
         
         // Handle loading errors
@@ -139,7 +145,7 @@ export async function GET(request) {
         
         <h2>After creating variations:</h2>
         <p>Add the client script to your website:</p>
-        <div class="code">&lt;script src="${host}/api/client-script"&gt;&lt;/script&gt;</div>
+        <div class="code">&lt;script src="${finalHost}/api/client-script"&gt;&lt;/script&gt;</div>
         
         <p>And initialize it:</p>
         <div class="code">&lt;script&gt;
@@ -183,7 +189,7 @@ export async function GET(request) {
       
       // Configuration
       const config = {
-        apiHost: "${host}",
+        apiHost: "${finalHost}",
         userId: null,
         debug: false,
         initialized: false,
@@ -251,14 +257,41 @@ export async function GET(request) {
         openSelector: function() {
           // Create and inject the bookmarklet code
           const script = document.createElement('script');
-          script.src = '${host}/api/selector-module';
+          script.src = '${finalHost}/api/selector-module';
+          script.async = true;
+          
+          // Add error handling
+          script.onerror = function(error) {
+            console.error('[AI CRO] Error loading selector module from ' + script.src, error);
+            alert('Error loading AI CRO selector module. Please check the console for details.');
+          };
+          
           document.head.appendChild(script);
           return this;
         },
         
+        // Function to check if script can be loaded from a URL
+        testConnection: function(url) {
+          url = url || config.apiHost + '/api/selector-module';
+          console.log('[AI CRO] Testing connection to: ' + url);
+          
+          return fetch(url, { 
+            method: 'OPTIONS',
+            mode: 'cors'
+          })
+          .then(function(response) {
+            console.log('[AI CRO] Connection test result:', response.status, response.statusText);
+            return response.ok;
+          })
+          .catch(function(error) {
+            console.error('[AI CRO] Connection test failed:', error);
+            return false;
+          });
+        },
+        
         // Add a helper to show the bookmarklet UI
         getBookmarklet: function() {
-          window.open('${host}/api/client-script?bookmarklet=true', '_blank');
+          window.open('${finalHost}/api/client-script?bookmarklet=true', '_blank');
           return this;
         },
         
@@ -327,7 +360,7 @@ export async function GET(request) {
               
               // Load the full selector module script
               var script = document.createElement('script');
-              script.src = '${host}/api/selector-module';
+              script.src = '${finalHost}/api/selector-module';
               script.async = true;
               
               // Handle loading errors
