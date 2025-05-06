@@ -13,9 +13,8 @@ const Header = () => {
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Admin', path: '/admin' },
-    { name: 'Segments', path: '/segments' },
     { name: 'Bookmarklet', path: '/bookmarklet' },
+    { name: 'Multi-Select', path: '/multi-select' },
     { name: 'Documentation', path: '/docs' }
   ];
 
