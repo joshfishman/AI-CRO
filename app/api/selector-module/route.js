@@ -244,10 +244,70 @@ export async function GET(request) {
         return element.tagName.toLowerCase();
       }
       
+      // Function to check if element is part of the UI or should be ignored
+      function isAppUIElement(element) {
+        if (!element) return true;
+        
+        // Check for common app UI classes
+        const appUIClasses = ['aicro-', 'modal', 'dialog', 'popup', 'overlay', 'drawer', 'sidebar', 'toast'];
+        
+        // Get element classes safely
+        let classNames = '';
+        try {
+          if (element.className) {
+            if (typeof element.className === 'string') {
+              classNames = element.className;
+            } else if (element.className.baseVal !== undefined) {
+              // SVG elements
+              classNames = element.className.baseVal;
+            } else {
+              // Fallback
+              const classAttr = element.getAttribute && element.getAttribute('class');
+              if (classAttr) {
+                classNames = classAttr;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error getting className:', e);
+          return true; // Default to ignore on error
+        }
+        
+        // Check for app UI classes
+        for (const uiClass of appUIClasses) {
+          if (classNames && classNames.includes(uiClass)) {
+            return true;
+          }
+        }
+        
+        // Check if element is inside UI container
+        if (element.closest && (
+            element.closest('.aicro-selector-ui') || 
+            element.closest('[id^="aicro-"]') || 
+            element.closest('[class^="aicro-"]') ||
+            element.closest('.modal') ||
+            element.closest('[role="dialog"]')
+          )) {
+          return true;
+        }
+        
+        // Check if element has fixed position or very high z-index
+        try {
+          const style = window.getComputedStyle(element);
+          if (style.position === 'fixed' && parseInt(style.zIndex) > 1000) {
+            return true;
+          }
+        } catch (e) {
+          // Ignore style errors
+        }
+        
+        return false;
+      }
+      
       // Add hover effect to elements
       function handleMouseOver(e) {
-        // Ignore our selector UI
-        if (e.target.closest('.aicro-selector-ui')) return;
+        // Ignore our selector UI and app UI elements
+        if (isAppUIElement(e.target)) return;
         
         // Ignore already selected elements
         if (e.target.classList.contains('aicro-selected')) return;
@@ -268,8 +328,8 @@ export async function GET(request) {
       
       // Handle element selection on click
       function handleClick(e) {
-        // Ignore clicks on our selector UI
-        if (e.target.closest('.aicro-selector-ui')) return;
+        // Ignore our selector UI and app UI elements
+        if (isAppUIElement(e.target)) return;
         
         // Only select targetable elements
         if (isTargetableElement(e.target)) {
@@ -452,10 +512,16 @@ export async function GET(request) {
           <div style="padding:12px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;margin-bottom:16px;white-space:pre-wrap;font-family:inherit;">\${item.text}</div>
           
           <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Generation Prompt</label>
-          <textarea id="aicro-generation-prompt" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:4px;font-family:inherit;resize:vertical;min-height:80px;margin-bottom:16px;" placeholder="Describe how you want to modify this text...">Generate 3 alternative versions of this text that are more persuasive and action-oriented.</textarea>
-          
-          <div style="text-align:center;margin-bottom:16px;">
-            <button id="aicro-generate-text-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;">Generate Options</button>
+          <div class="aicro-text-gen-content">
+            <textarea 
+              id="aicro-prompt" 
+              class="aicro-selector-input" 
+              style="min-height:100px;resize:vertical;margin-bottom:16px;" 
+              placeholder="Describe how you want to modify this text...">Generate 3 alternative versions of this text that are more persuasive and action-oriented.</textarea>
+            
+            <div style="text-align:center;margin-bottom:16px;">
+              <button id="aicro-generate-text-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;">Generate</button>
+            </div>
           </div>
           
           <div id="aicro-generation-status" style="text-align:center;margin-bottom:16px;color:#6b7280;display:none;">
@@ -522,7 +588,7 @@ export async function GET(request) {
         
         // Function to generate text options
         function generateTextOptions(item, index) {
-          const prompt = document.getElementById('aicro-generation-prompt').value;
+          const prompt = document.getElementById('aicro-prompt').value;
           const statusEl = document.getElementById('aicro-generation-status');
           const optionsContainer = document.getElementById('aicro-options-container');
           const generatedOptionsSection = document.getElementById('aicro-generated-options');
