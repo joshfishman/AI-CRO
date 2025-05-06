@@ -23,6 +23,13 @@ export async function GET(request) {
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-cro-three.vercel.app';
   
+  // Get possible override from query param
+  const url = new URL(request.url);
+  const hostOverride = url.searchParams.get('host');
+  
+  // Final host URL to use, preferring the override if provided
+  const finalHost = hostOverride || host;
+  
   // Set CORS headers to allow the script to be loaded from any domain
   const headers = {
     'Content-Type': 'application/javascript',
@@ -43,7 +50,7 @@ export async function GET(request) {
       
       // Configuration object
       var config = {
-        apiHost: "${host}",
+        apiHost: "${finalHost}",
         userId: null,
         debug: false,
         initialized: false
@@ -79,9 +86,35 @@ export async function GET(request) {
       // Open selector function
       AICRO.openSelector = function() {
         var script = document.createElement('script');
-        script.src = '${host}/api/selector-module';
+        script.src = '${finalHost}/api/selector-module';
+        script.async = true;
+        
+        // Add error handling
+        script.onerror = function(error) {
+          console.error('[AI CRO] Error loading selector module from ' + script.src, error);
+          alert('Error loading AI CRO selector module. Please check the console for details.');
+        };
+        
         document.head.appendChild(script);
         return AICRO;
+      };
+      
+      // Function to check if script can be loaded from a URL
+      AICRO.testConnection = function(url) {
+        console.log('[AI CRO] Testing connection to: ' + url);
+        
+        return fetch(url, { 
+          method: 'OPTIONS',
+          mode: 'cors'
+        })
+        .then(function(response) {
+          console.log('[AI CRO] Connection test result:', response.status, response.statusText);
+          return response.ok;
+        })
+        .catch(function(error) {
+          console.error('[AI CRO] Connection test failed:', error);
+          return false;
+        });
       };
       
       // Simple function to log status
