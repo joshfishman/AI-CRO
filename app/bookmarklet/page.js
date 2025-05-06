@@ -20,6 +20,11 @@ export default function Bookmarklet() {
       if (response.ok) {
         const data = await response.json();
         setBookmarkletCode(data.code);
+        console.log("Received bookmarklet code with length:", data.code.length);
+        // Verify it's a proper javascript: URL
+        if (!data.code.startsWith('javascript:')) {
+          console.error('Invalid bookmarklet code format:', data.code.substring(0, 50) + '...');
+        }
       } else {
         console.error('Failed to fetch bookmarklet:', response.status);
       }
@@ -57,20 +62,26 @@ export default function Bookmarklet() {
             {loading ? (
               <div className="animate-pulse bg-gray-300 h-10 w-48 rounded inline-block"></div>
             ) : (
-              <a
-                href={bookmarkletCode}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded inline-block"
-                draggable="true"
-                onDragStart={(e) => {
-                  // Ensure proper drag behavior
-                  e.dataTransfer.setData('text/plain', 'AI CRO Selector');
-                  e.dataTransfer.effectAllowed = 'copy';
-                }}
-              >
-                AI CRO Selector
-              </a>
+              <>
+                {bookmarkletCode && bookmarkletCode.startsWith('javascript:') ? (
+                  <a
+                    href={bookmarkletCode}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded inline-block"
+                    draggable="true"
+                    onDragStart={(e) => {
+                      // Ensure proper drag behavior
+                      e.dataTransfer.setData('text/plain', 'AI CRO Selector');
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                  >
+                    AI CRO Selector
+                  </a>
+                ) : (
+                  <div className="text-red-500">Error loading bookmarklet. Please refresh the page.</div>
+                )}
+                <p className="text-gray-500 text-sm mt-2">👆 Drag this button to your bookmarks bar</p>
+              </>
             )}
-            <p className="text-gray-500 text-sm mt-2">👆 Drag this button to your bookmarks bar</p>
           </div>
         </div>
         
@@ -129,9 +140,16 @@ export default function Bookmarklet() {
           <div className="flex justify-center mt-6">
             <button
               onClick={copyToClipboard}
-              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 mr-2"
             >
               {copied ? 'Copied!' : 'Copy Bookmarklet Code'}
+            </button>
+            
+            <button
+              onClick={() => window.alert(`Bookmarklet code length: ${bookmarkletCode.length}\nFirst 100 chars: ${bookmarkletCode.substring(0, 100)}...`)}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+            >
+              Debug Code
             </button>
           </div>
         </div>
