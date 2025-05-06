@@ -53,7 +53,7 @@ export async function GET(request) {
         
         // Load the full selector module script
         var script = document.createElement('script');
-        script.src = '${finalHost}/api/selector-module';
+        script.src = '${finalHost}/api/selector-module/simple';
         script.async = true;
         
         // Handle loading errors
@@ -257,7 +257,7 @@ export async function GET(request) {
         openSelector: function() {
           // Create and inject the bookmarklet code
           const script = document.createElement('script');
-          script.src = '${finalHost}/api/selector-module';
+          script.src = '${finalHost}/api/selector-module/simple';
           script.async = true;
           
           // Add error handling
@@ -343,7 +343,7 @@ export async function GET(request) {
         
         // Direct generation of bookmarklet code without server roundtrip
         getBookmarkletCode: function() {
-          const bookmarkletScript = \`
+          const bookmarkletScript = `
             (function() {
               // Check if already loaded
               if (window.AICRO_SELECTOR_ACTIVE) {
@@ -360,7 +360,7 @@ export async function GET(request) {
               
               // Load the full selector module script
               var script = document.createElement('script');
-              script.src = '${finalHost}/api/selector-module';
+              script.src = '${finalHost}/api/selector-module/simple';
               script.async = true;
               
               // Handle loading errors
@@ -375,7 +375,7 @@ export async function GET(request) {
               // Add to page
               document.head.appendChild(script);
             })();
-          \`;
+          `;
           
           return 'javascript:' + encodeURIComponent(bookmarkletScript);
         },
@@ -392,7 +392,7 @@ export async function GET(request) {
           const panel = document.createElement('div');
           panel.style.cssText = 'background:white;width:90%;max-width:600px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);overflow:hidden;';
           
-          panel.innerHTML = \`
+          panel.innerHTML = `
             <div style="padding:16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
               <h3 style="margin:0;font-size:18px;font-weight:600;color:#1e40af;">AI CRO Element Selector</h3>
               <button id="aicro-close-helper" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280;">×</button>
@@ -401,7 +401,7 @@ export async function GET(request) {
             <div style="padding:24px;">
               <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:24px;margin-bottom:24px;text-align:center;">
                 <p style="margin-top:0;">Drag this button to your bookmarks bar:</p>
-                <a href="\${bookmarkletCode}" class="aicro-bookmarklet" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:4px;font-weight:bold;text-decoration:none;margin:12px 0;">AI CRO Selector</a>
+                <a href="${bookmarkletCode}" class="aicro-bookmarklet" style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;border-radius:4px;font-weight:bold;text-decoration:none;margin:12px 0;">AI CRO Selector</a>
               </div>
               
               <div>
@@ -419,7 +419,7 @@ export async function GET(request) {
                 </div>
               </div>
             </div>
-          \`;
+          `;
           
           // Add event listeners
           helperUI.appendChild(panel);
@@ -481,12 +481,12 @@ export async function GET(request) {
                 let menuOpen = false;
                 const menu = document.createElement('div');
                 menu.style.cssText = 'position:absolute;bottom:60px;right:0;background:white;border-radius:8px;box-shadow:0 2px 15px rgba(0,0,0,0.2);display:none;min-width:180px;z-index:999999;';
-                menu.innerHTML = \`
+                menu.innerHTML = `
                   <div class="aicro-menu-item" id="aicro-open-selector" style="padding:10px 16px;cursor:pointer;border-bottom:1px solid #eee;">Open Selector</div>
                   <div class="aicro-menu-item" id="aicro-get-bookmarklet" style="padding:10px 16px;cursor:pointer;border-bottom:1px solid #eee;">Get Bookmarklet</div>
                   <div class="aicro-menu-item" id="aicro-copy-selector-url" style="padding:10px 16px;cursor:pointer;border-bottom:1px solid #eee;">Copy Selector URL</div>
                   <div class="aicro-menu-item" id="aicro-hide-button" style="padding:10px 16px;cursor:pointer;">Hide This Button</div>
-                \`;
+                `;
                 
                 helperButton.addEventListener('click', function(e) {
                   menuOpen = !menuOpen;
