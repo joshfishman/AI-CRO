@@ -964,6 +964,110 @@ export async function GET(request) {
           });
           
           return AICRO;
+        },
+        
+        // Show active variations in a floating panel
+        showActiveVariations: function() {
+          // Remove existing panel if any
+          const existingPanel = document.getElementById('aicro-variations-panel');
+          if (existingPanel) {
+            document.body.removeChild(existingPanel);
+          }
+          
+          // Create panel
+          const panel = document.createElement('div');
+          panel.id = 'aicro-variations-panel';
+          panel.style.position = 'fixed';
+          panel.style.bottom = '20px';
+          panel.style.right = '20px';
+          panel.style.width = '320px';
+          panel.style.maxHeight = '80vh';
+          panel.style.overflowY = 'auto';
+          panel.style.background = 'white';
+          panel.style.borderRadius = '8px';
+          panel.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+          panel.style.zIndex = '999995';
+          panel.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+          panel.style.fontSize = '14px';
+          panel.style.color = '#333';
+          
+          // Header
+          const header = document.createElement('div');
+          header.style.padding = '12px 16px';
+          header.style.background = '#f9fafb';
+          header.style.borderBottom = '1px solid #e5e7eb';
+          header.style.display = 'flex';
+          header.style.justifyContent = 'space-between';
+          header.style.alignItems = 'center';
+          header.innerHTML = '<h3 style="margin:0;font-size:16px;font-weight:600;">Active Variations</h3>' +
+                            '<button id="aicro-close-variations" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;">×</button>';
+          
+          // Content
+          const content = document.createElement('div');
+          content.style.padding = '16px';
+          
+          // Check for active variations
+          const activeVariations = [];
+          try {
+            // Get variations from localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('AICRO_VARIATION_')) {
+                try {
+                  const variation = JSON.parse(localStorage.getItem(key));
+                  if (variation && variation.url === window.location.href) {
+                    activeVariations.push(variation);
+                  }
+                } catch (e) {
+                  console.error('[AI CRO] Error parsing variation:', e);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[AI CRO] Error accessing localStorage:', e);
+          }
+          
+          if (activeVariations.length === 0) {
+            content.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;">No active variations found for this page.</div>';
+          } else {
+            // List variations
+            const list = document.createElement('div');
+            
+            activeVariations.forEach(variation => {
+              const item = document.createElement('div');
+              item.style.padding = '12px';
+              item.style.borderBottom = '1px solid #e5e7eb';
+              item.style.marginBottom = '8px';
+              
+              item.innerHTML = 
+                '<div style="font-weight:600;">' + (variation.elementType || 'Element') + '</div>' +
+                '<div style="font-size:12px;color:#6b7280;margin-bottom:4px;">' + (variation.selector || 'Unknown selector') + '</div>' +
+                '<div style="margin-bottom:8px;padding:6px;background:#f9fafb;border-radius:4px;">' +
+                  '<div style="font-size:12px;font-weight:500;color:#6b7280;">Original:</div>' +
+                  '<div style="white-space:pre-wrap;">' + (variation.originalContent || 'No content') + '</div>' +
+                '</div>' +
+                '<div style="padding:6px;background:#f0f7ff;border-radius:4px;">' +
+                  '<div style="font-size:12px;font-weight:500;color:#6b7280;">Variation:</div>' +
+                  '<div style="white-space:pre-wrap;">' + (variation.variantContent || 'No content') + '</div>' +
+                '</div>';
+              
+              list.appendChild(item);
+            });
+            
+            content.appendChild(list);
+          }
+          
+          // Add elements to panel
+          panel.appendChild(header);
+          panel.appendChild(content);
+          document.body.appendChild(panel);
+          
+          // Add event listeners
+          document.getElementById('aicro-close-variations').addEventListener('click', function() {
+            document.body.removeChild(panel);
+          });
+          
+          return this;
         }
       };
       
