@@ -176,7 +176,7 @@ export async function GET(request) {
   const clientScript = `
     // AI CRO Client Library
     window.AICRO = window.AICRO || {};
-    
+      
     // Configuration
     const config = {
       apiHost: "${host}",
@@ -277,9 +277,169 @@ export async function GET(request) {
       
       return this;
     };
+
+    // Make sure all core methods are defined up front
     
     // Set user ID
-    // ... existing code ...
+    AICRO.setUserId = function(userId) {
+      config.userId = userId;
+      return this;
+    };
+    
+    // Enable debug mode
+    AICRO.debug = function(enable = true) {
+      config.debug = enable;
+      return this;
+    };
+    
+    // Initialize the personalization engine
+    AICRO.init = function(options = {}) {
+      // Log function that only outputs in debug mode
+      function log(...args) {
+        if (config.debug) {
+          console.log("[AI CRO]", ...args);
+        }
+      }
+      
+      if (config.initialized) {
+        log("Already initialized");
+        return this;
+      }
+      
+      // Always ensure autoDetection is disabled by default for safety
+      if (!options.autoDetection || typeof options.autoDetection !== 'object') {
+        options.autoDetection = { enabled: false };
+      }
+      
+      // Only enable auto-detection if explicitly enabled
+      if (options.autoDetection.enabled !== true) {
+        options.autoDetection.enabled = false;
+      }
+      
+      // Merge options with defaults
+      Object.assign(config, options);
+      
+      log("Initializing with config:", config);
+      
+      // If in debug mode, add a small floating helper button to access the bookmarklet
+      if (config.debug) {
+        // Create a small floating button
+        const helperButton = document.createElement('div');
+        helperButton.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#3b82f6;color:white;padding:8px 16px;border-radius:4px;z-index:99999;box-shadow:0 2px 10px rgba(0,0,0,0.2);cursor:pointer;font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:500;';
+        helperButton.textContent = 'AI CRO';
+        
+        // Create a small popup menu
+        const menu = document.createElement('div');
+        menu.style.cssText = 'position:absolute;bottom:100%;right:0;margin-bottom:8px;background:white;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.15);width:200px;display:none;';
+        menu.innerHTML = \`
+          <div style="padding:12px;border-bottom:1px solid #e5e7eb;">
+            <div style="font-weight:600;color:#111;">AI CRO Tools</div>
+          </div>
+          <div class="aicro-menu-item" style="padding:8px 12px;cursor:pointer;color:#333;hover:background-color:#f9fafb;" id="aicro-open-selector">
+            Open Element Selector
+          </div>
+          <div class="aicro-menu-item" style="padding:8px 12px;cursor:pointer;color:#333;hover:background-color:#f9fafb;" id="aicro-get-bookmarklet">
+            Get Bookmarklet
+          </div>
+          <div class="aicro-menu-item" style="padding:8px 12px;cursor:pointer;color:#333;hover:background-color:#f9fafb;" id="aicro-hide-button">
+            Hide This Button
+          </div>
+        \`;
+        
+        // Wait for DOM to be ready if needed
+        const addButtonToDOM = () => {
+          if (document.body) {
+            // Handle menu toggle
+            let menuOpen = false;
+            helperButton.addEventListener('click', function(e) {
+              if (!menuOpen) {
+                menu.style.display = 'block';
+                menuOpen = true;
+                e.stopPropagation();
+              }
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function() {
+              if (menuOpen) {
+                menu.style.display = 'none';
+                menuOpen = false;
+              }
+            });
+            
+            // Append elements to the document
+            helperButton.appendChild(menu);
+            document.body.appendChild(helperButton);
+            
+            // Add menu item event handlers
+            setTimeout(() => {
+              const openSelectorBtn = document.getElementById('aicro-open-selector');
+              const getBookmarkletBtn = document.getElementById('aicro-get-bookmarklet');
+              const hideButtonBtn = document.getElementById('aicro-hide-button');
+              
+              if (openSelectorBtn) {
+                openSelectorBtn.addEventListener('click', function() {
+                  AICRO.openSelector();
+                  menu.style.display = 'none';
+                  menuOpen = false;
+                });
+              }
+              
+              if (getBookmarkletBtn) {
+                getBookmarkletBtn.addEventListener('click', function() {
+                  AICRO.getBookmarklet();
+                  menu.style.display = 'none';
+                  menuOpen = false;
+                });
+              }
+              
+              if (hideButtonBtn) {
+                hideButtonBtn.addEventListener('click', function() {
+                  helperButton.style.display = 'none';
+                });
+              }
+              
+              // Apply hover effect to menu items
+              const menuItems = menu.querySelectorAll('.aicro-menu-item');
+              menuItems.forEach(item => {
+                item.addEventListener('mouseover', function() {
+                  this.style.backgroundColor = '#f3f4f6';
+                });
+                item.addEventListener('mouseout', function() {
+                  this.style.backgroundColor = '';
+                });
+              });
+            }, 100);
+            
+            log("Added helper button for bookmarklet access");
+          } else {
+            // If body isn't ready yet, try again in a moment
+            setTimeout(addButtonToDOM, 50);
+          }
+        };
+        
+        addButtonToDOM();
+      }
+      
+      // Set initialized to true before proceeding with rest of initialization
+      config.initialized = true;
+      return this;
+    };
+    
+    // Make module exports available for CommonJS/AMD/UMD compatibility
+    if (typeof module !== 'undefined' && module.exports) {
+      module.exports = AICRO;
+    } else if (typeof define === 'function' && define.amd) {
+      define([], function() { return AICRO; });
+    }
+    
+    // Log this so users can see the script loaded properly
+    if (console && console.log) {
+      console.log('[AI CRO] Client script loaded. Use AICRO.debug(true).init() to initialize.');
+    }
+
+    // Return the AICRO object for immediate use
+    return AICRO;
   `;
 
   return new Response(clientScript, { headers });
