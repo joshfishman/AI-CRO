@@ -25,7 +25,7 @@ export default function GTMDocumentation() {
             <li>
               <strong>Load the AI CRO client script</strong> on your website:
               <pre className="bg-gray-50 p-4 rounded border my-3 overflow-x-auto">
-                <code>{`<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>`}</code>
+                <code>{`<script async src="https://ai-cro-three.vercel.app/api/aicro-script"></script>`}</code>
               </pre>
             </li>
             

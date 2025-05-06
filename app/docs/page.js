@@ -29,7 +29,7 @@ export default function DocumentationPage() {
             Add the AI CRO client script to your website:
           </p>
           <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
-            {`<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>`}
+            {`<script async src="https://ai-cro-three.vercel.app/api/aicro-script"></script>`}
           </pre>
           
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
@@ -37,7 +37,7 @@ export default function DocumentationPage() {
             <p className="mb-3">We've updated our integration process to resolve CORS issues and improve compatibility with Webflow:</p>
             <ul className="list-disc pl-6 mb-3">
               <li><a href="/docs/webflow" className="text-blue-600 hover:underline">Webflow Integration Guide</a> - Comprehensive instructions</li>
-              <li><a href="/api/client-script/fixed-cors?bookmarklet=true" className="text-blue-600 hover:underline" target="_blank">Fixed CORS Bookmarklet</a> - Better error handling</li>
+              <li><a href="/api/aicro-script?bookmarklet=true" className="text-blue-600 hover:underline" target="_blank">AI CRO Bookmarklet</a> - Better error handling</li>
               <li><a href="/api/debugger" className="text-blue-600 hover:underline" target="_blank">AI CRO Debugger Tool</a> - Diagnose issues on your site</li>
             </ul>
             <p>For HelloHelpr Webflow site, <a href="/docs/hellohelpr" className="text-blue-600 hover:underline">follow these instructions</a>.</p>

@@ -6,12 +6,12 @@ This guide will help you integrate AI CRO with your Webflow website, allowing yo
 
 Follow these steps to quickly integrate AI CRO with your Webflow site:
 
-### 1. Add the Client Script to Your Webflow Site
+### 1. Add the AI CRO Script to Your Webflow Site
 
 Add the following script to your Webflow site's **Custom Code** section in the `<head>` tag area:
 
 ```html
-<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
+<script async src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
 ```
 
 ### 2. Initialize AI CRO
@@ -25,11 +25,11 @@ Add the following code to initialize AI CRO, either in a custom code block or by
       // Initialize with debug mode enabled (remove in production)
       AICRO.debug(true).init();
     } else {
-      console.error("AICRO object not found. Make sure the client script loaded correctly.");
+      console.error("AICRO object not found. Make sure the script loaded correctly.");
       
       // Try to reload the script if it failed
       var script = document.createElement('script');
-      script.src = "https://ai-cro-three.vercel.app/api/client-script/fixed-cors";
+      script.src = "https://ai-cro-three.vercel.app/api/aicro-script";
       document.head.appendChild(script);
     }
   });
@@ -41,7 +41,7 @@ Add the following code to initialize AI CRO, either in a custom code block or by
 To create and test variations for your Webflow site, use our bookmarklet tool:
 
 1. Visit this URL to get the bookmarklet:
-   [https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true](https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true)
+   [https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true](https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true)
 
 2. Drag the "AI CRO Selector" button to your bookmarks bar
 3. Navigate to your Webflow site
@@ -52,11 +52,11 @@ To create and test variations for your Webflow site, use our bookmarklet tool:
 
 ### "AICRO.init is not a function" Error
 
-This error occurs when the client script fails to load properly or the AICRO object is not correctly initialized.
+This error occurs when the script fails to load properly or the AICRO object is not correctly initialized.
 
 **Solutions:**
 
-1. **Check the loading order**: Make sure the client script is loaded before you try to initialize it.
+1. **Check the loading order**: Make sure the script is loaded before you try to initialize it.
    
 2. **Use a load event listener**:
    ```javascript
@@ -69,9 +69,9 @@ This error occurs when the client script fails to load properly or the AICRO obj
    });
    ```
 
-3. **Try the fixed CORS version**:
+3. **Try direct loading**:
    ```html
-   <script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
+   <script async src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
    ```
 
 ### Script Loading Errors
@@ -81,12 +81,12 @@ If you see errors related to loading the script:
 **Solutions:**
 
 1. **Check for typos in the URL**: Make sure you're using the correct URL:
-   - Correct: `https://ai-cro-three.vercel.app/api/client-script/fixed-cors`
-   - Not: `https://ai-cro-three.vercel.app/api/client-scrip/fixed-cors` (missing 't')
-   - Not: `https://ai-cro-three.vercel.app/api/client-script/simple` (wrong endpoint)
+   - Correct: `https://ai-cro-three.vercel.app/api/aicro-script`
+   - Not: `https://ai-cro-three.vercel.app/api/aicro-scrip` (missing 't')
+   - Not: `https://ai-cro-three.vercel.app/api/client-script` (old endpoint)
 
 2. **Check for CORS errors**: If your browser is blocking the script due to CORS:
-   - Use the fixed-cors version of the script
+   - Our aicro-script handles CORS properly
    - Try adding your domain to the allowed origins list (contact support)
 
 3. **Check for content blockers**: Some ad blockers or privacy extensions might block our scripts. Try temporarily disabling them.
@@ -106,7 +106,7 @@ If the bookmarklet doesn't activate when clicked:
 
 2. **Check for browser restrictions**: Some websites restrict what bookmarklets can do. Try using the direct URL approach instead.
 
-3. **Try the debug version of the bookmarklet**: The fixed version includes better error logging.
+3. **Try the debug version of the bookmarklet**: Our bookmarklet includes better error logging.
 
 ## Advanced Integration
 
@@ -124,7 +124,7 @@ Here's a complete example of how to integrate AI CRO in Webflow:
 
 ```html
 <!-- In your site's head section -->
-<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
+<script async src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
 <script>
   // Wait for document to be ready
   document.addEventListener('DOMContentLoaded', function() {

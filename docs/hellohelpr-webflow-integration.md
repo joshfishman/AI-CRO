@@ -7,17 +7,17 @@ This guide provides specific instructions for integrating AI CRO with the HelloH
 We've identified the following issues with the current integration:
 
 1. The script fails to load with CORS errors
-2. The `client-script` URL is not accessible from hellohelpr.webflow.io
+2. The script URL is not accessible from hellohelpr.webflow.io
 3. There are syntax errors in the implemented code
 
 ## Step-by-Step Fix
 
 ### 1. Update the Script Tag
 
-Replace your current script tag with our fixed CORS version:
+Replace your current script tag with our improved version:
 
 ```html
-<script src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
+<script src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
 ```
 
 ### 2. Add Proper Initialization
@@ -38,7 +38,7 @@ Add this code to your site's custom code (after the script above):
       
       // Try to load the script again
       var script = document.createElement('script');
-      script.src = 'https://ai-cro-three.vercel.app/api/client-script/fixed-cors';
+      script.src = 'https://ai-cro-three.vercel.app/api/aicro-script';
       script.onload = function() {
         if (window.AICRO) {
           AICRO.debug(true).init();
@@ -51,12 +51,12 @@ Add this code to your site's custom code (after the script above):
 </script>
 ```
 
-### 3. Use the Fixed Bookmarklet
+### 3. Use the Improved Bookmarklet
 
-Instead of the regular bookmarklet, use our enhanced version with better error handling:
+Use our enhanced bookmarklet with better error handling:
 
-1. Open this URL: [https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true](https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true)
-2. Drag the "AI CRO Selector (Fixed)" button to your bookmarks bar
+1. Open this URL: [https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true](https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true)
+2. Drag the "AI CRO Selector" button to your bookmarks bar
 3. Navigate to your HelloHelpr site
 4. Click the bookmarklet to activate the element selector
 5. A debug panel will appear showing the loading process and any errors
@@ -67,7 +67,7 @@ The most common issues with Webflow sites are:
 
 1. **Script placement**: Make sure the scripts are added in the correct order in the Custom Code section
 2. **Editor mode**: Test in published mode, not the Webflow editor
-3. **URL correctness**: Double-check for typos in the URLs (client-script not client-scrip)
+3. **URL correctness**: Double-check for typos in the URLs (aicro-script not aicro-scrip)
 4. **Third-party blockers**: Ad blockers or security tools might be blocking the scripts
 
 ### 5. HelloHelpr-Specific Settings
@@ -101,7 +101,7 @@ After implementing these changes:
 1. Open your browser's Developer Tools (F12 or Ctrl+Shift+I)
 2. Go to the Console tab
 3. Look for messages starting with "[AI CRO]"
-4. You should see "AI CRO client script loaded" and "AICRO initialized successfully"
+4. You should see "AI CRO script loaded" and "AICRO initialized successfully"
 5. If you see errors, check our troubleshooting steps below
 
 ## Troubleshooting
@@ -113,7 +113,7 @@ Try this alternative approach that bypasses CORS restrictions:
 ```html
 <script>
   // Direct fetch and eval approach
-  fetch('https://ai-cro-three.vercel.app/api/client-script/fixed-cors')
+  fetch('https://ai-cro-three.vercel.app/api/aicro-script')
     .then(response => response.text())
     .then(scriptText => {
       // Create a new script element with the fetched code
@@ -140,7 +140,7 @@ Try this alternative approach that bypasses CORS restrictions:
 If you see specific error messages:
 
 1. **"AICRO is not defined"**: The script didn't load properly. Check for network errors in Developer Tools.
-2. **"CORS error"**: The browser is blocking cross-origin requests. Use the fixed-cors version or try the fetch approach above.
+2. **"CORS error"**: The browser is blocking cross-origin requests. Use our improved script or try the fetch approach above.
 3. **"Uncaught SyntaxError"**: There might be a syntax issue in your custom initialization code.
 
 ## Need Further Help?
