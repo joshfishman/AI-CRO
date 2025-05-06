@@ -78,10 +78,10 @@ export default function Home() {
           <h3 className="text-lg font-medium mb-2">1. Add the script to your website</h3>
           <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
             <code className="text-sm">
-              {`<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>`}
+              {`<script async src="https://ai-cro-three.vercel.app/api/external-script"></script>`}
             </code>
           </div>
-          <p className="text-gray-600 text-sm">Add this script to the <code>&lt;head&gt;</code> section of your website.</p>
+          <p className="text-gray-600 text-sm">Add this script to the <code>&lt;head&gt;</code> section of your website. This is our improved script with proper CORS support.</p>
         </div>
         
         <div className="mb-6">
@@ -90,24 +90,33 @@ export default function Home() {
             <code className="text-sm">
               {`<script>
   document.addEventListener('DOMContentLoaded', function() {
-    AICRO.init();
+    if (window.AICRO) {
+      window.AICRO.init();
+    }
   });
 </script>`}
+            </code>
+          </div>
+          <p className="text-gray-600 text-sm">Or use the data attribute for automatic initialization:</p>
+          <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
+            <code className="text-sm">
+              {`<script async src="https://ai-cro-three.vercel.app/api/external-script" data-aicro-auto-init></script>`}
             </code>
           </div>
         </div>
         
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-2">3. That's it!</h3>
+          <h3 className="text-lg font-medium mb-2">3. For websites with strict CSP or CORS issues</h3>
           <p className="text-gray-600">
-            Our AI will automatically detect and personalize important elements on your page. You can also 
-            manually add the <code>data-aicro</code> attribute to specific elements if needed.
+            If your website has strict Content Security Policies or you're experiencing CORS issues, use our improved direct bookmarklet:
           </p>
-          <div className="bg-gray-50 p-4 rounded border mb-2 mt-4 overflow-x-auto">
-            <code className="text-sm">
-              {`<h1 data-aicro>Welcome to our website!</h1>
-<button data-aicro class="cta-button">Sign Up Now</button>`}
-            </code>
+          <div className="mt-4">
+            <Link href="/direct-bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+              Get Direct Bookmarklet
+            </Link>
+            <p className="text-gray-600 text-sm mt-2">
+              Our improved bookmarklet bypasses CORS issues and works on any website.
+            </p>
           </div>
         </div>
         
@@ -124,19 +133,19 @@ export default function Home() {
         <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
         <ol className="list-decimal list-inside space-y-3">
           <li className="ml-4">
-            <span className="font-medium">Install the AI CRO Selector Bookmarklet:</span>
+            <span className="font-medium">Use our improved Direct Bookmarklet:</span>
             <div className="ml-6 mt-2">
-              <Link href="/bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-flex items-center">
+              <Link href="/direct-bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-flex items-center">
                 <MdBookmark className="mr-2" />
-                Install Bookmarklet
+                Install Direct Bookmarklet
               </Link>
               <p className="text-gray-600 text-sm mt-2">
-                Our bookmarklet works on any website without CORS issues and lets you select elements to personalize.
+                Our improved bookmarklet works on any website, even with strict CSP or CORS restrictions.
               </p>
             </div>
           </li>
           <li className="ml-4">
-            <span className="font-medium">Create Segments:</span> Define your audience using the <Link href="/segments" className="text-blue-600 hover:text-blue-800">Segments page</Link>.
+            <span className="font-medium">Select elements to personalize:</span> Use the bookmarklet to choose elements on your site for personalization or A/B testing.
           </li>
           <li className="ml-4">
             <span className="font-medium">Configure Tests:</span> Set up A/B tests in the <Link href="/admin" className="text-blue-600 hover:text-blue-800">Admin Panel</Link>.
@@ -146,10 +155,14 @@ export default function Home() {
           </li>
         </ol>
         
-        <div className="mt-8 pt-6 border-t border-gray-200 flex justify-between items-center">
-          <div>
-            <p className="text-gray-600">Need help? Check out our documentation</p>
-            <Link href="/docs" className="text-blue-600 hover:text-blue-800 font-medium">View Documentation →</Link>
+        <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div className="mb-4 md:mb-0">
+            <p className="text-gray-600">Need help with integration?</p>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <Link href="/docs/integration/webflow" className="text-blue-600 hover:text-blue-800 font-medium">Webflow Guide</Link>
+              <Link href="/docs/integration/gtm" className="text-blue-600 hover:text-blue-800 font-medium">GTM Integration</Link>
+              <Link href="/docs/integration/hellohelpr" className="text-blue-600 hover:text-blue-800 font-medium">HelloHelpr Guide</Link>
+            </div>
           </div>
           
           <Link 
