@@ -6,7 +6,6 @@ export default function ElementGroupManager({ initialData = null }) {
   const [selectedElements, setSelectedElements] = useState([]);
   const [audienceInfo, setAudienceInfo] = useState('');
   const [intentInfo, setIntentInfo] = useState('');
-  const [pageContext, setPageContext] = useState('');
   const [activeElementIndex, setActiveElementIndex] = useState(0);
   const [contentVariations, setContentVariations] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -14,6 +13,7 @@ export default function ElementGroupManager({ initialData = null }) {
   const [requestIds, setRequestIds] = useState({});
   const [includeOriginal, setIncludeOriginal] = useState(true);
   const [selectedContent, setSelectedContent] = useState({});
+  const [elementContexts, setElementContexts] = useState({});
 
   // Initialize with data from bookmarklet if available
   useEffect(() => {
@@ -21,11 +21,15 @@ export default function ElementGroupManager({ initialData = null }) {
       // Set audience and intent info
       if (initialData.audience) setAudienceInfo(initialData.audience);
       if (initialData.intent) setIntentInfo(initialData.intent);
-      if (initialData.pageContext) setPageContext(initialData.pageContext);
       
       // Set selected elements
       if (initialData.elements && initialData.elements.length > 0) {
         setSelectedElements(initialData.elements);
+        
+        // If pageContext was provided in initialData, apply it to the first element
+        if (initialData.pageContext) {
+          setElementContexts({0: initialData.pageContext});
+        }
       }
     }
   }, [initialData]);
@@ -64,6 +68,11 @@ export default function ElementGroupManager({ initialData = null }) {
     const newSelectedContent = { ...selectedContent };
     delete newSelectedContent[index];
     setSelectedContent(newSelectedContent);
+    
+    // Remove element context for this element
+    const newElementContexts = { ...elementContexts };
+    delete newElementContexts[index];
+    setElementContexts(newElementContexts);
     
     // Update active index if needed
     if (activeElementIndex >= newElements.length) {
@@ -142,7 +151,7 @@ export default function ElementGroupManager({ initialData = null }) {
           originalContent: content,
           audience: audienceInfo,
           intent: intentInfo,
-          pageContext: pageContext,
+          elementContext: elementContexts[elementIndex] || '',
           customPrompt: elementPrompt,
           numVariations: 6,
           includeOriginalContent: includeOriginal
@@ -200,9 +209,10 @@ export default function ElementGroupManager({ initialData = null }) {
       prompt += `\n\nContent goal: ${intentInfo}`;
     }
     
-    // Add page context if available
-    if (pageContext) {
-      prompt += `\n\nPage context: ${pageContext}`;
+    // Add element context if available
+    const elementContext = elementContexts[activeElementIndex];
+    if (elementContext) {
+      prompt += `\n\nElement context: ${elementContext}`;
     }
     
     // Add guidance based on element type
@@ -307,7 +317,7 @@ export default function ElementGroupManager({ initialData = null }) {
       const content = selectedContent[activeElementIndex];
       setCustomPrompt(generateDefaultPrompt(selectedElements[activeElementIndex], content));
     }
-  }, [activeElementIndex, selectedElements, audienceInfo, intentInfo, pageContext]);
+  }, [activeElementIndex, selectedElements, audienceInfo, intentInfo, elementContexts]);
 
   const saveChanges = () => {
     // In a real implementation, this would save the changes to the database
@@ -340,18 +350,6 @@ export default function ElementGroupManager({ initialData = null }) {
               placeholder="What's your goal? (e.g., drive sales, educate visitors, increase sign-ups)"
               value={intentInfo}
               onChange={(e) => setIntentInfo(e.target.value)}
-              rows={2}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Page Context
-            </label>
-            <textarea
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              placeholder="Provide context about this page (e.g., product page for premium headphones, landing page for software)"
-              value={pageContext}
-              onChange={(e) => setPageContext(e.target.value)}
               rows={2}
             />
           </div>
@@ -522,6 +520,23 @@ export default function ElementGroupManager({ initialData = null }) {
                     )}
                   </div>
                 </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Element Context
+                </label>
+                <textarea
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="Provide context about this specific element (e.g., hero section headline, primary CTA button, product description)"
+                  value={elementContexts[activeElementIndex] || ''}
+                  onChange={(e) => {
+                    const newElementContexts = { ...elementContexts };
+                    newElementContexts[activeElementIndex] = e.target.value;
+                    setElementContexts(newElementContexts);
+                  }}
+                  rows={2}
+                />
               </div>
               
               <div className="mb-4">
