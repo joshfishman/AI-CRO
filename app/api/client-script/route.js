@@ -134,12 +134,12 @@ export async function GET(request) {
           return this;
         }
         
-        // Always ensure autoDetection is disabled by default
+        // Always ensure autoDetection is disabled by default for safety
         if (!options.autoDetection || typeof options.autoDetection !== 'object') {
           options.autoDetection = { enabled: false };
         }
         
-        // Only enable if explicitly requested
+        // Only enable auto-detection if explicitly requested
         if (options.autoDetection.enabled !== true) {
           options.autoDetection.enabled = false;
         }
@@ -149,13 +149,12 @@ export async function GET(request) {
         
         log("Initializing with config:", config);
         
-        // Set up mutation observer for dynamic content
-        if (config.autoDetection.enabled) {
+        // Set up mutation observer for dynamic content if auto-detection is enabled
+        if (config.autoDetection && config.autoDetection.enabled) {
           setupMutationObserver();
+          // Start auto-personalizing content
+          detectImportantElements();
         }
-        
-        // Start personalizing content
-        personalizeContent();
         
         // Push initialization event to GTM
         pushToGTM('aicro_initialized', {
@@ -502,25 +501,79 @@ export async function GET(request) {
       // Check if an element is part of the bookmarklet UI
       function isBookmarkletUiElement(element) {
         try {
+          // Skip if element is not valid
+          if (!element || !element.nodeType) {
+            return false;
+          }
+          
           // Check if element has aicro-* class
-          if (element.className && typeof element.className === 'string' && 
-              /aicro-/.test(element.className)) {
+          let classNames = '';
+          
+          // Handle different types of className property
+          if (element.className) {
+            if (typeof element.className === 'string') {
+              classNames = element.className;
+            } else if (element.className.baseVal !== undefined) {
+              // For SVG elements, className is an SVGAnimatedString
+              classNames = element.className.baseVal;
+            } else {
+              // Try to get class using getAttribute as fallback
+              const classAttr = element.getAttribute && element.getAttribute('class');
+              if (classAttr) {
+                classNames = classAttr;
+              }
+            }
+          }
+          
+          // Check for aicro- classes
+          if (classNames && /aicro-/.test(classNames)) {
             return true;
           }
           
           // Check for parents with aicro-* class
           let parent = element.parentElement;
-          while (parent) {
-            if (parent.className && typeof parent.className === 'string' && 
-                /aicro-/.test(parent.className)) {
+          let depth = 0;
+          const maxDepth = 10; // Prevent infinite loops
+          
+          while (parent && depth < maxDepth) {
+            let parentClassNames = '';
+            
+            // Handle different types of className property for parent
+            if (parent.className) {
+              if (typeof parent.className === 'string') {
+                parentClassNames = parent.className;
+              } else if (parent.className.baseVal !== undefined) {
+                parentClassNames = parent.className.baseVal;
+              } else {
+                const classAttr = parent.getAttribute && parent.getAttribute('class');
+                if (classAttr) {
+                  parentClassNames = classAttr;
+                }
+              }
+            }
+            
+            if (parentClassNames && /aicro-/.test(parentClassNames)) {
               return true;
             }
+            
             parent = parent.parentElement;
+            depth++;
           }
           
           // Also check for the selector UI element
-          if (document.querySelector('.aicro-selector-ui') && 
-              document.querySelector('.aicro-selector-ui').contains(element)) {
+          const selectorUI = document.querySelector('.aicro-selector-ui');
+          if (selectorUI && selectorUI.contains(element)) {
+            return true;
+          }
+          
+          // Check for modal overlays from the bookmarklet
+          const modalOverlay = Array.from(document.querySelectorAll('div')).find(
+            div => div.style && div.style.cssText && 
+            div.style.cssText.includes('position:fixed') && 
+            div.style.cssText.includes('z-index:999999')
+          );
+          
+          if (modalOverlay && modalOverlay.contains(element)) {
             return true;
           }
           
@@ -657,6 +710,11 @@ export async function GET(request) {
       // Check if element has CTA characteristics
       function hasCtaCharacteristics(element) {
         try {
+          // Skip if element is not valid
+          if (!element || !element.nodeType) {
+            return false;
+          }
+          
           const text = element.textContent.trim().toLowerCase();
           const ctaWords = ['sign up', 'register', 'submit', 'subscribe', 'buy', 'purchase', 'order', 'get', 'download', 'try', 'start', 'learn more', 'contact'];
           
@@ -667,8 +725,8 @@ export async function GET(request) {
           if (element.className) {
             if (typeof element.className === 'string') {
               classNames = element.className.toLowerCase();
-            } else if (element.className.baseVal) {
-              // For SVG elements className is an SVGAnimatedString with baseVal
+            } else if (element.className.baseVal !== undefined) {
+              // For SVG elements, className is an SVGAnimatedString with baseVal
               classNames = element.className.baseVal.toLowerCase();
             } else {
               // If className is not a string and has no baseVal, try getAttribute
@@ -679,10 +737,18 @@ export async function GET(request) {
             }
           }
           
+          // Check if element has style that indicates it's a button
+          let computedStyle = null;
+          try {
+            computedStyle = window.getComputedStyle(element);
+          } catch (styleError) {
+            // Ignore style errors - just continue with null style
+          }
+          
           const hasCtaStyle = classNames.includes('btn') || 
                              classNames.includes('button') ||
                              classNames.includes('cta') ||
-                             getComputedStyle(element).backgroundColor !== 'rgba(0, 0, 0, 0)';
+                             (computedStyle && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)');
           
           return hasCtaText && hasCtaStyle;
         } catch (e) {

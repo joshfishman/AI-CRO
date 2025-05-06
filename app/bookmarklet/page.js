@@ -6,6 +6,7 @@ import Link from 'next/link';
 export default function Bookmarklet() {
   const [bookmarkletCode, setBookmarkletCode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchBookmarklet();
@@ -14,7 +15,8 @@ export default function Bookmarklet() {
   const fetchBookmarklet = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/get-bookmarklet');
+      // Use the standalone bookmarklet endpoint
+      const response = await fetch('/api/standalone-bookmarklet');
       if (response.ok) {
         const data = await response.json();
         setBookmarkletCode(data.code);
@@ -28,26 +30,30 @@ export default function Bookmarklet() {
     }
   };
 
+  const copyToClipboard = () => {
+    if (bookmarkletCode) {
+      navigator.clipboard.writeText(bookmarkletCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">AI CRO Bookmarklet</h1>
+          <h1 className="text-4xl font-bold">AI CRO Selector Bookmarklet</h1>
           <Link href="/" className="text-blue-600 hover:text-blue-800">
             Back to Dashboard
           </Link>
         </div>
 
-        <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold mb-4">How to Use</h2>
-          <ol className="list-decimal list-inside space-y-2 mb-6">
-            <li><strong>Drag</strong> the button below to your bookmarks bar</li>
-            <li>Navigate to <strong>any website</strong> where you want to enable personalization</li>
-            <li><strong>Click</strong> the bookmarklet in your bookmarks bar</li>
-            <li>The AI CRO script will automatically detect and personalize important elements</li>
-          </ol>
-
-          <div className="mb-6 text-center">
+        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+          <p className="mb-4 text-lg font-medium">
+            Drag the button below to your bookmarks bar to install the AI CRO selector tool:
+          </p>
+          
+          <div className="flex flex-col items-center mb-6">
             {loading ? (
               <div className="animate-pulse bg-gray-300 h-10 w-48 rounded inline-block"></div>
             ) : (
@@ -57,24 +63,76 @@ export default function Bookmarklet() {
                 draggable="true"
                 onDragStart={(e) => {
                   // Ensure proper drag behavior
-                  e.dataTransfer.setData('text/plain', 'AI CRO');
+                  e.dataTransfer.setData('text/plain', 'AI CRO Selector');
                   e.dataTransfer.effectAllowed = 'copy';
                 }}
               >
-                ⚡ AI CRO Personalizer
+                AI CRO Selector
               </a>
             )}
             <p className="text-gray-500 text-sm mt-2">👆 Drag this button to your bookmarks bar</p>
           </div>
-
-          <div className="bg-gray-100 p-4 rounded">
-            <h3 className="text-lg font-semibold mb-2">What this does:</h3>
-            <ul className="list-disc list-inside space-y-1 text-gray-700">
-              <li>Automatically detects important elements on any page</li>
-              <li>Personalizes content based on visitor behavior</li>
-              <li>Tracks interactions for optimization</li>
-              <li>Works on any website without modifying code</li>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <h2 className="text-2xl font-bold mb-4">About the Bookmarklet</h2>
+          
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-2">Benefits:</h3>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Works on any domain without CORS issues</li>
+              <li>No external script loading (everything is contained in the bookmarklet)</li>
+              <li>More robust error handling</li>
+              <li>Faster loading since it doesn't rely on external scripts</li>
+              <li>Better compatibility with content blockers</li>
             </ul>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-2">How to use:</h3>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Drag the button above to your bookmarks bar</li>
+              <li>Navigate to any webpage you want to test</li>
+              <li>Click the bookmarklet to activate the selector</li>
+              <li>Select elements on the page to modify</li>
+              <li>Enter target audience and intent information</li>
+              <li>Click "Generate" to see text alternatives</li>
+              <li>Select a variation and save it to create an A/B test</li>
+            </ol>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-2">After Creating Tests:</h3>
+            <p className="mb-4">
+              After saving a test with the bookmarklet, add the client script to your website to display the personalized content to your visitors:
+            </p>
+            <div className="bg-gray-50 p-4 rounded border mb-4">
+              <code className="text-sm">
+                {`<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>`}
+              </code>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Initialize the script by adding this code to your website:
+            </p>
+            <div className="bg-gray-50 p-4 rounded border mb-4">
+              <code className="text-sm">
+                {`<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    AICRO.debug(true) // Enable debug mode (remove in production)
+      .init();
+  });
+</script>`}
+              </code>
+            </div>
+          </div>
+
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={copyToClipboard}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+            >
+              {copied ? 'Copied!' : 'Copy Bookmarklet Code'}
+            </button>
           </div>
         </div>
       </main>

@@ -223,57 +223,38 @@ AICRO.addPersonalizationRule(function() {
 
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2">Using the Bookmarklet</h3>
-          <p className="text-gray-700">
-            We offer several bookmarklet options to help you select elements and generate tests:
+          <p className="text-gray-700 mb-4">
+            Our standalone bookmarklet helps you select elements and generate tests without CORS issues or external dependencies.
           </p>
           
           <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-            <h4 className="font-medium text-blue-800 mb-2">1. Standalone Bookmarklet <span className="text-xs font-medium text-green-600 ml-1">★ RECOMMENDED ★</span></h4>
+            <h4 className="font-medium text-blue-800 mb-2">Bookmarklet</h4>
             <p className="text-gray-700 mb-2">
-              Available at <Link href="/standalone-bookmarklet" className="text-blue-600 hover:underline">Standalone Bookmarklet</Link>
+              Available at <Link href="/bookmarklet" className="text-blue-600 hover:underline">Bookmarklet</Link>
             </p>
             <ul className="list-disc list-inside ml-4 text-gray-700 space-y-1">
               <li>No external script dependencies</li>
               <li>Works on any domain without CORS issues</li>
               <li>Best for cross-origin testing</li>
               <li>Includes UI for element selection and text generation</li>
+              <li>Allows saving test configurations directly to the server</li>
             </ul>
-          </div>
-          
-          <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded">
-            <h4 className="font-medium text-gray-800 mb-2">2. Direct Bookmarklet</h4>
-            <p className="text-gray-700 mb-2">
-              Available at <Link href="/direct-bookmarklet" className="text-blue-600 hover:underline">Direct Bookmarklet</Link>
-            </p>
-            <ul className="list-disc list-inside ml-4 text-gray-700 space-y-1">
-              <li>Loads the selector module directly</li>
-              <li>Bypasses the client script loading step</li>
-              <li>More reliable for some website configurations</li>
-            </ul>
-          </div>
-          
-          <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded">
-            <h4 className="font-medium text-gray-800 mb-2">3. Standard Bookmarklet</h4>
-            <p className="text-gray-700 mb-2">
-              Available at <Link href="/bookmarklet" className="text-blue-600 hover:underline">Standard Bookmarklet</Link>
-            </p>
-            <ul className="list-disc list-inside ml-4 text-gray-700 space-y-1">
-              <li>Original implementation</li>
-              <li>Loads the full client script first</li>
-              <li>May experience CORS issues on some domains</li>
-            </ul>
+            
+            <h5 className="font-medium text-blue-800 mt-4 mb-2">How to Use:</h5>
+            <ol className="list-decimal list-inside ml-4 text-gray-700 space-y-1">
+              <li>Install the bookmarklet by dragging it to your bookmarks bar</li>
+              <li>Navigate to the website you want to test</li>
+              <li>Click the bookmarklet to activate the selector tool</li>
+              <li>Click on elements you want to personalize or use the quick select buttons</li>
+              <li>Enter target audience and intent information</li>
+              <li>Click "Generate" to see text alternatives</li>
+              <li>Select a variation and save it to create an A/B test</li>
+            </ol>
           </div>
           
           <p className="text-gray-700 mt-4">
-            How to use any of the bookmarklets:
+            After saving a test with the bookmarklet, add the client script to your website to display the personalized content to your visitors.
           </p>
-          <ol className="list-decimal list-inside ml-4 space-y-2 mt-2">
-            <li>Install the bookmarklet by dragging it to your browser's bookmarks bar</li>
-            <li>Navigate to your website</li>
-            <li>Click the bookmarklet to activate the selector tool</li>
-            <li>Hover over elements and click to select them</li>
-            <li>Configure test options and generate content alternatives</li>
-          </ol>
         </div>
       </section>
 

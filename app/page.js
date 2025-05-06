@@ -124,22 +124,16 @@ export default function Home() {
         <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
         <ol className="list-decimal list-inside space-y-3">
           <li className="ml-4">
-            <span className="font-medium">Install the Bookmarklet:</span> Choose the option that works best for you:
-            <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
-              <li>
-                <Link href="/standalone-bookmarklet" className="text-blue-600 hover:text-blue-800">Standalone Bookmarklet</Link> 
-                <span className="text-xs font-medium text-green-600 ml-1">★ RECOMMENDED ★</span> 
-                <span className="text-gray-600 text-sm">(Best for cross-domain use)</span>
-              </li>
-              <li>
-                <Link href="/direct-bookmarklet" className="text-blue-600 hover:text-blue-800">Direct Bookmarklet</Link> 
-                <span className="text-gray-600 text-sm">(Loads selector directly)</span>
-              </li>
-              <li>
-                <Link href="/bookmarklet" className="text-blue-600 hover:text-blue-800">Standard Bookmarklet</Link> 
-                <span className="text-gray-600 text-sm">(Legacy version)</span>
-              </li>
-            </ul>
+            <span className="font-medium">Install the AI CRO Selector Bookmarklet:</span>
+            <div className="ml-6 mt-2">
+              <Link href="/bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-flex items-center">
+                <MdBookmark className="mr-2" />
+                Install Bookmarklet
+              </Link>
+              <p className="text-gray-600 text-sm mt-2">
+                Our bookmarklet works on any website without CORS issues and lets you select elements to personalize.
+              </p>
+            </div>
           </li>
           <li className="ml-4">
             <span className="font-medium">Create Segments:</span> Define your audience using the <Link href="/segments" className="text-blue-600 hover:text-blue-800">Segments page</Link>.

@@ -420,7 +420,7 @@ export async function GET(request) {
         footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;';
         footer.innerHTML = \`
           <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;">Cancel</button>
-          <button class="aicro-modal-save aicro-btn aicro-btn-primary">Apply</button>
+          <button class="aicro-modal-save aicro-btn aicro-btn-primary">Save for A/B Testing</button>
         \`;
         
         // Assemble modal
@@ -440,7 +440,35 @@ export async function GET(request) {
         });
         
         document.querySelector('.aicro-modal-save').addEventListener('click', () => {
-          alert('In the full version, this would save your selected variation for A/B testing. Sign up at ${host} to access this feature.');
+          // Find the selected option
+          let selectedOption = '';
+          
+          document.querySelectorAll('.aicro-text-option input[type="radio"]').forEach((radio, i) => {
+            if (radio.checked) {
+              if (radio.id === 'option-custom') {
+                selectedOption = document.getElementById('aicro-custom-option').value;
+              } else {
+                // For demo purposes, we're just using placeholder text
+                // In a real implementation, these would be actual generated variations
+                const variationTexts = [
+                  "More concise version focused on benefits",
+                  "Stronger call-to-action language version",
+                  \`Version targeting ${audience || 'specific audience'}`,
+                  \`Version emphasizing ${intent || 'main goal'}`
+                ];
+                selectedOption = variationTexts[i];
+              }
+            }
+          });
+          
+          if (!selectedOption) {
+            alert('Please select a variation or write a custom one.');
+            return;
+          }
+          
+          // Save the variation to the server
+          saveVariation(item, selectedOption, audience, intent);
+          
           document.body.removeChild(modalOverlay);
         });
         
@@ -466,6 +494,93 @@ export async function GET(request) {
         if (firstOption) {
           firstOption.style.borderColor = '#3b82f6';
           firstOption.style.background = '#f0f7ff';
+        }
+      }
+      
+      // Save variation to the server
+      function saveVariation(item, selectedContent, audience, intent) {
+        try {
+          // Create a dialog to show saving progress
+          const savingDialog = document.createElement('div');
+          savingDialog.style.cssText = 'position:fixed;top:20px;right:20px;background:#4CAF50;color:white;padding:8px 16px;border-radius:4px;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,0.2);';
+          savingDialog.textContent = 'Saving variation...';
+          document.body.appendChild(savingDialog);
+          
+          // Prepare test data
+          const testData = {
+            url: window.location.href,
+            selector: item.selector,
+            originalContent: item.text,
+            variantContent: selectedContent,
+            elementType: item.type,
+            audience: audience || '',
+            intent: intent || '',
+            createdAt: new Date().toISOString()
+          };
+          
+          // Send to server
+          fetch(\`\${window.AICRO_SELECTOR.apiHost}/api/save-test\`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit',
+            body: JSON.stringify(testData)
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Update dialog to show success
+            savingDialog.style.background = '#4CAF50';
+            savingDialog.textContent = 'Test saved successfully!';
+            
+            // Display setup instructions
+            setTimeout(() => {
+              const instructionsDialog = document.createElement('div');
+              instructionsDialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:24px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:999999;max-width:90%;width:500px;';
+              instructionsDialog.innerHTML = \`
+                <h3 style="margin-top:0;font-size:18px;margin-bottom:16px;">A/B Test Created!</h3>
+                <p style="margin-bottom:16px;">Your test has been saved. To display this test on your website:</p>
+                <ol style="margin-bottom:16px;padding-left:24px;">
+                  <li style="margin-bottom:8px;">Add the AI CRO client script to your website:</li>
+                  <pre style="background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto;margin-bottom:16px;"><code>&lt;script async src="${window.AICRO_SELECTOR.apiHost}/api/client-script"&gt;&lt;/script&gt;</code></pre>
+                  <li style="margin-bottom:8px;">Initialize it with your user ID:</li>
+                  <pre style="background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto;margin-bottom:16px;"><code>&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    AICRO.debug(true) // Enable debug mode (remove in production)
+      .init();
+  });
+&lt;/script&gt;</code></pre>
+                </ol>
+                <p style="margin-bottom:16px;">The client script will automatically load and display the personalized content you've created.</p>
+                <div style="text-align:right;">
+                  <button id="aicro-close-instructions" style="background:#3b82f6;color:white;padding:8px 16px;border-radius:4px;border:none;cursor:pointer;">Got it!</button>
+                </div>
+              \`;
+              document.body.appendChild(instructionsDialog);
+              
+              // Remove saving dialog
+              document.body.removeChild(savingDialog);
+              
+              // Add close button handler
+              document.getElementById('aicro-close-instructions').addEventListener('click', () => {
+                document.body.removeChild(instructionsDialog);
+              });
+            }, 2000);
+          })
+          .catch(error => {
+            console.error('[AI CRO] Error saving test:', error);
+            savingDialog.style.background = '#f44336';
+            savingDialog.textContent = 'Error saving test. Please try again.';
+            setTimeout(() => {
+              if (savingDialog.parentNode) {
+                document.body.removeChild(savingDialog);
+              }
+            }, 3000);
+          });
+        } catch (e) {
+          console.error('[AI CRO] Error in saveVariation:', e);
+          alert('Error saving variation. Please try again.');
         }
       }
       
