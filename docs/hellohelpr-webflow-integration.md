@@ -8,91 +8,84 @@ We've identified the following issues with the current integration:
 
 1. The script fails to load with CORS errors
 2. The script URL is not accessible from hellohelpr.webflow.io
-3. There are syntax errors in the implemented code
+3. Syntax errors in the header implementation causing `missing } after function body` error
+
+## Complete Header Fix
+
+The issue is likely in your header implementation. Here's a complete, simplified header that will work:
+
+```html
+<!-- In your Custom Code section (head) -->
+<script src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
+
+<!-- Add this at the end of your Custom Code section (body) -->
+<script>
+// Simple initialization - use this exact code without modifications
+window.onload = function() {
+  if (window.AICRO) {
+    window.AICRO.debug(true);
+    window.AICRO.init();
+  }
+}
+</script>
+```
 
 ## Step-by-Step Fix
 
-### 1. Update the Script Tag
+### 1. Replace The Header Code
 
-Replace your current script tag with our improved version:
+1. Go to Webflow Project Settings → Custom Code
+2. Remove the current implementation that's causing errors
+3. Add the clean implementation above
+4. Make sure not to modify anything in the code when pasting
 
-```html
-<script src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
-```
+### 2. Check for Common Syntax Errors
 
-### 2. Add Proper Initialization
+If you're still seeing the "missing } after function body" error:
 
-Add this code to your site's custom code (after the script above):
+1. Make sure all opening braces `{` have matching closing braces `}`
+2. Avoid using template literals (backticks) or arrow functions
+3. Keep the implementation as minimal as possible
 
-```html
-<script>
-  // Wait for the document to be fully loaded
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check if AICRO was loaded correctly
-    if (window.AICRO && typeof window.AICRO.init === 'function') {
-      // Initialize with debug enabled
-      AICRO.debug(true).init();
-      console.log('AI CRO initialized successfully!');
-    } else {
-      console.error('AICRO not loaded correctly. Attempting to reload.');
-      
-      // Try to load the script again
-      var script = document.createElement('script');
-      script.src = 'https://ai-cro-three.vercel.app/api/aicro-script';
-      script.onload = function() {
-        if (window.AICRO) {
-          AICRO.debug(true).init();
-          console.log('AI CRO loaded and initialized on second attempt!');
-        }
-      };
-      document.head.appendChild(script);
-    }
-  });
-</script>
-```
+### 3. Use the Bookmarklet for Testing
 
-### 3. Use the Improved Bookmarklet
-
-Use our enhanced bookmarklet with better error handling:
+To verify your site is properly configured:
 
 1. Open this URL: [https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true](https://ai-cro-three.vercel.app/api/aicro-script?bookmarklet=true)
 2. Drag the "AI CRO Selector" button to your bookmarks bar
-3. Navigate to your HelloHelpr site
+3. Visit your HelloHelpr site
 4. Click the bookmarklet to activate the element selector
-5. A debug panel will appear showing the loading process and any errors
+5. If it works, your basic integration is correct
 
-### 4. Check for Common Webflow Issues
+### 4. Ultra-Simple Implementation
 
-The most common issues with Webflow sites are:
-
-1. **Script placement**: Make sure the scripts are added in the correct order in the Custom Code section
-2. **Editor mode**: Test in published mode, not the Webflow editor
-3. **URL correctness**: Double-check for typos in the URLs (aicro-script not aicro-scrip)
-4. **Third-party blockers**: Ad blockers or security tools might be blocking the scripts
-
-### 5. HelloHelpr-Specific Settings
-
-For the HelloHelpr site, we recommend the following settings:
+If you continue to have issues, use this ultra-minimal approach that avoids any potential syntax errors:
 
 ```html
+<!-- In your Custom Code section (head) -->
+<script src="https://ai-cro-three.vercel.app/api/aicro-script"></script>
+
+<!-- End of your Custom Code section (body) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    if (window.AICRO) {
-      AICRO.debug(true).init({
-        // Specific settings for HelloHelpr
-        pageAudience: 'small business owners',
-        pageIntent: 'increase service bookings',
-        autoDetection: {
-          enabled: true,
-          headings: true,
-          buttons: true,
-          callToAction: true
-        }
-      });
-    }
-  });
+// Ultra simple - no advanced features, no room for syntax errors
+function initAICRO() {
+  if (window.AICRO) {
+    window.AICRO.debug(true);
+    window.AICRO.init();
+  }
+}
+
+if (document.readyState === "complete") {
+  initAICRO();
+} else {
+  window.onload = initAICRO;
+}
 </script>
 ```
+
+## Need Help?
+
+Contact us at support@aicro.com for assistance, and we can provide a complete implementation specific to your site.
 
 ## Testing the Integration
 
@@ -113,25 +106,37 @@ Try this alternative approach that bypasses CORS restrictions:
 ```html
 <script>
   // Direct fetch and eval approach
-  fetch('https://ai-cro-three.vercel.app/api/aicro-script')
-    .then(response => response.text())
-    .then(scriptText => {
-      // Create a new script element with the fetched code
-      const script = document.createElement('script');
-      script.textContent = scriptText;
-      document.head.appendChild(script);
-      
-      // Initialize after a short delay
-      setTimeout(() => {
-        if (window.AICRO) {
-          AICRO.debug(true).init();
-          console.log('AI CRO loaded and initialized via fetch!');
-        }
-      }, 500);
-    })
-    .catch(error => {
-      console.error('Failed to load AI CRO script:', error);
-    });
+  function loadAICRO() {
+    var request = new XMLHttpRequest();
+    request.open('GET', 'https://ai-cro-three.vercel.app/api/aicro-script', true);
+    
+    request.onload = function() {
+      if (this.status >= 200 && this.status < 400) {
+        // Success!
+        var script = document.createElement('script');
+        script.textContent = this.response;
+        document.head.appendChild(script);
+        
+        // Initialize after a short delay
+        setTimeout(function() {
+          if (window.AICRO) {
+            window.AICRO.debug(true);
+            window.AICRO.init();
+            console.log('AI CRO loaded and initialized via XHR!');
+          }
+        }, 500);
+      }
+    };
+    
+    request.onerror = function() {
+      console.error('Failed to load AI CRO script');
+    };
+    
+    request.send();
+  }
+  
+  // Run this when the page loads
+  window.onload = loadAICRO;
 </script>
 ```
 
@@ -140,7 +145,7 @@ Try this alternative approach that bypasses CORS restrictions:
 If you see specific error messages:
 
 1. **"AICRO is not defined"**: The script didn't load properly. Check for network errors in Developer Tools.
-2. **"CORS error"**: The browser is blocking cross-origin requests. Use our improved script or try the fetch approach above.
+2. **"CORS error"**: The browser is blocking cross-origin requests. Use our improved script or try the XHR approach above.
 3. **"Uncaught SyntaxError"**: There might be a syntax issue in your custom initialization code.
 
 ## Need Further Help?

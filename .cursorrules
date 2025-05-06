@@ -2,3 +2,5 @@
 - commit and push changes after each task
 - Check if a package is needed before you install a new one
 - Always Build acccording to Project Plan.md, if we need to update it ask me.
+- Always escape backticks in javascript when using template literals
+- The selector module should have no external scripts

@@ -12,9 +12,9 @@ const navItems = [
     href: '/docs/integration', 
     label: 'Integration Guides',
     children: [
-      { href: '/docs/webflow', label: 'Webflow Integration' },
-      { href: '/docs/hellohelpr', label: 'HelloHelpr Guide' },
-      { href: '/docs/gtm', label: 'GTM Integration' },
+      { href: '/docs/integration/webflow', label: 'Webflow Integration' },
+      { href: '/docs/integration/hellohelpr', label: 'HelloHelpr Guide' },
+      { href: '/docs/integration/gtm', label: 'GTM Integration' },
     ]
   },
   { href: '/docs/api', label: 'API Reference' },
@@ -33,16 +33,20 @@ export default function DocsLayout({ children }) {
             <ul className="space-y-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
-                const isParentOfActive = item.children && item.children.some(child => pathname === child.href);
+                const isParentOfActive = item.children && 
+                  (pathname === item.href || item.children.some(child => pathname === child.href));
                 
                 return (
                   <li key={item.href} className="mb-2">
                     {item.children ? (
                       <>
-                        <div className={`font-medium text-sm mb-1 ${isParentOfActive ? 'text-blue-600' : 'text-gray-700'}`}>
+                        <Link 
+                          href={item.href}
+                          className={`font-medium text-sm mb-1 block ${isActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+                        >
                           {item.label}
-                        </div>
-                        <ul className="pl-3 space-y-1 border-l border-gray-200">
+                        </Link>
+                        <ul className="pl-3 space-y-1 border-l border-gray-200 mt-1">
                           {item.children.map((child) => {
                             const isChildActive = pathname === child.href;
                             return (
