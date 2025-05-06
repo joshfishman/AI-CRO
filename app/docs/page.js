@@ -24,17 +24,24 @@ export default function DocumentationPage() {
       <section id="installation" className="mb-10 p-6 bg-white rounded-lg shadow">
         <h2 className="text-2xl font-bold mb-4">Installation</h2>
         
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">1. Add the script to your website</h3>
-          <div className="bg-gray-50 p-4 rounded border mb-2 overflow-x-auto">
-            <code className="text-sm">
-              {`<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>`}
-            </code>
-          </div>
-          <p className="text-gray-700">
-            Add this script to the <code>&lt;head&gt;</code> section of your HTML document. 
-            This will load the AI CRO client library on your website.
+        <div className="mb-8">
+          <p className="mb-4">
+            Add the AI CRO client script to your website:
           </p>
+          <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+            {`<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>`}
+          </pre>
+          
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h3 className="font-bold text-blue-800 mb-2">🚀 New! Improved Webflow Integration</h3>
+            <p className="mb-3">We've updated our integration process to resolve CORS issues and improve compatibility with Webflow:</p>
+            <ul className="list-disc pl-6 mb-3">
+              <li><a href="/docs/webflow" className="text-blue-600 hover:underline">Webflow Integration Guide</a> - Comprehensive instructions</li>
+              <li><a href="/api/client-script/fixed-cors?bookmarklet=true" className="text-blue-600 hover:underline" target="_blank">Fixed CORS Bookmarklet</a> - Better error handling</li>
+              <li><a href="/api/debugger" className="text-blue-600 hover:underline" target="_blank">AI CRO Debugger Tool</a> - Diagnose issues on your site</li>
+            </ul>
+            <p>For HelloHelpr Webflow site, <a href="/docs/hellohelpr" className="text-blue-600 hover:underline">follow these instructions</a>.</p>
+          </div>
         </div>
 
         <div className="mb-6">
