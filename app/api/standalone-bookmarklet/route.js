@@ -351,6 +351,9 @@ export async function GET(request) {
       
       // Show text options dialog
       function showTextOptionsDialog(item, index, audience, intent) {
+        // Temporarily disable element selection while dialog is open
+        disableElementSelection();
+        
         // Create modal for text options
         const modalOverlay = document.createElement('div');
         modalOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center;';
@@ -424,10 +427,14 @@ export async function GET(request) {
         // Event listeners
         document.querySelector('.aicro-modal-close').addEventListener('click', () => {
           document.body.removeChild(modalOverlay);
+          // Re-enable element selection when dialog is closed
+          enableElementSelection();
         });
         
         document.querySelector('.aicro-modal-cancel').addEventListener('click', () => {
           document.body.removeChild(modalOverlay);
+          // Re-enable element selection when dialog is closed
+          enableElementSelection();
         });
         
         // Generate button event handler
@@ -455,6 +462,8 @@ export async function GET(request) {
           saveVariation(item, selectedVariation, audience, intent);
           
           document.body.removeChild(modalOverlay);
+          // Re-enable element selection when dialog is closed
+          enableElementSelection();
         });
         
         // Generate variations function
@@ -557,6 +566,27 @@ export async function GET(request) {
             customVariation.style.background = '#f0f7ff';
           });
         }
+      }
+      
+      // Disable element selection
+      function disableElementSelection() {
+        // Remove event listeners for element selection
+        document.removeEventListener('mouseover', handleMouseOver, true);
+        document.removeEventListener('mouseout', handleMouseOut, true);
+        document.removeEventListener('click', handleClick, true);
+        
+        // Remove highlight effects from any currently highlighted elements
+        document.querySelectorAll('.aicro-highlight').forEach(el => {
+          el.classList.remove('aicro-highlight');
+        });
+      }
+      
+      // Enable element selection
+      function enableElementSelection() {
+        // Add event listeners for element selection
+        document.addEventListener('mouseover', handleMouseOver, true);
+        document.addEventListener('mouseout', handleMouseOut, true);
+        document.addEventListener('click', handleClick, true);
       }
       
       // Save variation to the server
