@@ -73,7 +73,7 @@ export default function MultiSelectPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Multi-Element Selection</h1>
+            <h2 className="text-3xl font-bold">Multi-Element Selection</h2>
             <p className="text-gray-600 mt-1">
               Select and personalize multiple elements simultaneously
             </p>
