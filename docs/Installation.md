@@ -199,16 +199,43 @@ Add the script in the theme.liquid file:
 
 ### Webflow
 
-Add the script in the custom code section of your site settings:
+To integrate AI CRO with Webflow, add these scripts to your site settings:
 
+**Head Code:**
 ```html
-<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>
 <script>
+  // Create AICRO object to prevent "not a function" errors
+  window.AICRO = window.AICRO || {};
+</script>
+<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>
+```
+
+**Footer Code:**
+```html
+<script>
+  // Initialize AI CRO when the DOM is ready
   document.addEventListener('DOMContentLoaded', function() {
-    AICRO.init();
+    // Check if AICRO is ready
+    if (window.AICRO && typeof window.AICRO.init === 'function') {
+      // Initialize with debugging enabled
+      window.AICRO.debug(true).init();
+    } else {
+      // If not ready yet, wait for it
+      var checkAICRO = setInterval(function() {
+        if (window.AICRO && typeof window.AICRO.init === 'function') {
+          window.AICRO.debug(true).init();
+          clearInterval(checkAICRO);
+        }
+      }, 100);
+      
+      // Stop checking after 5 seconds
+      setTimeout(function() { clearInterval(checkAICRO); }, 5000);
+    }
   });
 </script>
 ```
+
+For detailed Webflow-specific instructions, troubleshooting, and advanced usage, see the [Webflow Integration Guide](Webflow-Integration.md).
 
 ## Troubleshooting
 

@@ -64,6 +64,18 @@ This template includes [Next.js 14](https://nextjs.org/) with the App Router, [S
 - Utility functions for common operations
 - TypeScript and ESLint configuration included
 
+### Platform Integrations
+
+#### Webflow Integration
+
+We've updated our Webflow integration with improved cross-browser compatibility and error handling:
+
+1. See the [Webflow Integration Guide](docs/Webflow-Integration.md) for detailed instructions
+2. Key improvements include:
+   - Fixed "AICRO.init is not a function" errors
+   - Added URL parameter access for the selector tool
+   - Improved script loading sequence
+
 ## 🚀 Getting Started
 
 1. Fork this repository
@@ -154,6 +166,7 @@ AI-powered Conversion Rate Optimization platform that allows you to create, mana
 - **A/B Testing**: Run experiments with different variants to optimize conversions
 - **Analytics Dashboard**: Track the performance of your tests in real-time
 - **Edge Config Storage**: Fast, global storage for your configurations
+- **Platform Integrations**: Ready-to-use integrations for platforms including Webflow, WordPress, and Shopify
 
 ## Getting Started
 
@@ -162,6 +175,37 @@ AI-powered Conversion Rate Optimization platform that allows you to create, mana
 - Node.js 18+ and npm
 - Vercel account
 - Vercel Edge Config setup
+
+### Quick Setup
+
+1. Add the AI CRO script to your website:
+   ```html
+   <script async src="https://ai-cro-three.vercel.app/api/client-script"></script>
+   <script>
+     document.addEventListener('DOMContentLoaded', function() {
+       // Initialize AI CRO with debug mode enabled
+       AICRO.debug(true).init();
+     });
+   </script>
+   ```
+
+2. Mark elements for personalization:
+   ```html
+   <h1 data-aicro>Your headline</h1>
+   <button data-aicro>Your button</button>
+   ```
+
+### Platform Integrations
+
+#### Webflow Integration
+
+We've updated our Webflow integration with improved cross-browser compatibility and error handling:
+
+1. See the [Webflow Integration Guide](docs/Webflow-Integration.md) for detailed instructions
+2. Key improvements include:
+   - Fixed "AICRO.init is not a function" errors
+   - Added URL parameter access for the selector tool
+   - Improved script loading sequence
 
 ### Installation
 
