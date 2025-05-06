@@ -1,221 +1,160 @@
-# Webflow Integration Guide for AI CRO
+# AI CRO Webflow Integration Guide
 
-This guide provides detailed instructions for integrating AI CRO with Webflow sites, including solutions for common issues.
+This guide will help you integrate AI CRO with your Webflow website, allowing you to optimize your content dynamically using AI.
 
-## Standard Installation
+## Quick Start Integration
 
-### 1. Add the Script to Your Webflow Site
+Follow these steps to quickly integrate AI CRO with your Webflow site:
 
-1. Log in to your Webflow dashboard
-2. Navigate to your project settings
-3. Click on **Custom Code** in the sidebar
-4. In the **Head Code** section, add the following script:
+### 1. Add the Client Script to Your Webflow Site
+
+Add the following script to your Webflow site's **Custom Code** section in the `<head>` tag area:
 
 ```html
-<script>
-  // Create AICRO object to prevent "not a function" errors
-  window.AICRO = window.AICRO || {};
-</script>
-<script async src="https://ai-cro-three.vercel.app/api/client-script"></script>
+<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
 ```
 
-### 2. Add the Initialization Code
+### 2. Initialize AI CRO
 
-In the **Footer Code** section of your Webflow project settings, add the following:
+Add the following code to initialize AI CRO, either in a custom code block or by creating a new script element:
 
 ```html
 <script>
-  // Initialize AI CRO when the DOM is ready
   document.addEventListener('DOMContentLoaded', function() {
-    // Check if AICRO is ready
     if (window.AICRO && typeof window.AICRO.init === 'function') {
-      // Initialize with debugging enabled
-      window.AICRO.debug(true).init();
+      // Initialize with debug mode enabled (remove in production)
+      AICRO.debug(true).init();
     } else {
-      // If not ready yet, wait for it
-      var checkAICRO = setInterval(function() {
-        if (window.AICRO && typeof window.AICRO.init === 'function') {
-          window.AICRO.debug(true).init();
-          clearInterval(checkAICRO);
-          console.log('[AI CRO] Initialized after delay');
-        }
-      }, 100);
+      console.error("AICRO object not found. Make sure the client script loaded correctly.");
       
-      // Set a timeout to stop checking after 5 seconds
-      setTimeout(function() {
-        clearInterval(checkAICRO);
-        console.error('[AI CRO] Failed to initialize after 5 seconds');
-      }, 5000);
+      // Try to reload the script if it failed
+      var script = document.createElement('script');
+      script.src = "https://ai-cro-three.vercel.app/api/client-script/fixed-cors";
+      document.head.appendChild(script);
     }
   });
 </script>
 ```
 
-## Marking Elements for Personalization
+### 3. Use the AI CRO Bookmarklet
 
-You can use Webflow's custom attributes to mark elements for personalization:
+To create and test variations for your Webflow site, use our bookmarklet tool:
 
-1. Select an element in the Webflow Designer
-2. In the Settings panel, click on the "+" icon in the Custom Attributes section
-3. Add a custom attribute:
-   - Name: `data-aicro`
-   - Value: Leave blank or add a descriptive name (e.g., `headline` or `cta-button`)
+1. Visit this URL to get the bookmarklet:
+   [https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true](https://ai-cro-three.vercel.app/api/client-script/fixed-cors?bookmarklet=true)
 
-## Using the Element Selector
+2. Drag the "AI CRO Selector" button to your bookmarks bar
+3. Navigate to your Webflow site
+4. Click the bookmarklet to activate the AI CRO element selector
+5. Select elements on your page and create AI-powered variations
 
-### Method 1: Bookmarklet
-
-1. Visit your published Webflow site
-2. Click the AI CRO bookmarklet in your browser's bookmarks bar
-3. If you don't have the bookmarklet, create one by:
-   - Opening this URL in your browser: `https://ai-cro-three.vercel.app/api/client-script?bookmarklet=true`
-   - Dragging the "AI CRO Selector" button to your bookmarks bar
-
-### Method 2: URL Parameter
-
-1. Add `?aicro_selector=true` to the end of your Webflow site's URL
-2. Example: `https://your-webflow-site.com/?aicro_selector=true`
-
-## Troubleshooting
+## Troubleshooting Common Issues
 
 ### "AICRO.init is not a function" Error
 
-This error occurs when the initialization code runs before the AI CRO script has fully loaded. The installation code above includes a solution that:
+This error occurs when the client script fails to load properly or the AICRO object is not correctly initialized.
 
-1. Creates an empty AICRO object before loading the script
-2. Checks if the init function exists before calling it
-3. Retries initialization if the function isn't available yet
+**Solutions:**
 
-### "missing } after function body" Error
+1. **Check the loading order**: Make sure the client script is loaded before you try to initialize it.
+   
+2. **Use a load event listener**:
+   ```javascript
+   document.addEventListener('DOMContentLoaded', function() {
+     if (window.AICRO) {
+       AICRO.debug(true).init();
+     } else {
+       console.error("AICRO not loaded");
+     }
+   });
+   ```
 
-If you see this error in your console, it's likely due to a syntax error in the initialization code. Make sure:
+3. **Try the fixed CORS version**:
+   ```html
+   <script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
+   ```
 
-1. All opening brackets `{` have corresponding closing brackets `}`
-2. All functions have proper closing brackets
-3. No semicolons are missing at the end of statements
+### Script Loading Errors
 
-The code provided in this guide has been verified to be syntactically correct, so make sure you copy it exactly as shown.
+If you see errors related to loading the script:
 
-### URL and Path Issues
+**Solutions:**
 
-Make sure you're using the correct URL path:
-- Correct: `https://ai-cro-three.vercel.app/api/client-script`
-- Not: `https://ai-cro-three.vercel.app/api/client-scrip`
-- Not: `https://ai-cro-three.vercel.app/api/client-script/simple`
+1. **Check for typos in the URL**: Make sure you're using the correct URL:
+   - Correct: `https://ai-cro-three.vercel.app/api/client-script/fixed-cors`
+   - Not: `https://ai-cro-three.vercel.app/api/client-scrip/fixed-cors` (missing 't')
+   - Not: `https://ai-cro-three.vercel.app/api/client-script/simple` (wrong endpoint)
 
-### Ultra-Simple Integration
+2. **Check for CORS errors**: If your browser is blocking the script due to CORS:
+   - Use the fixed-cors version of the script
+   - Try adding your domain to the allowed origins list (contact support)
 
-If you're still having issues, try this ultra-simplified version:
+3. **Check for content blockers**: Some ad blockers or privacy extensions might block our scripts. Try temporarily disabling them.
 
-**Head Code:**
+### Bookmarklet Not Working
+
+If the bookmarklet doesn't activate when clicked:
+
+**Solutions:**
+
+1. **Manual script injection**:
+   ```javascript
+   var script = document.createElement('script');
+   script.src = 'https://ai-cro-three.vercel.app/api/selector-module/simple';
+   document.head.appendChild(script);
+   ```
+
+2. **Check for browser restrictions**: Some websites restrict what bookmarklets can do. Try using the direct URL approach instead.
+
+3. **Try the debug version of the bookmarklet**: The fixed version includes better error logging.
+
+## Advanced Integration
+
+For advanced integration options with Webflow, you can:
+
+1. **GTM Integration**: Use Google Tag Manager to control when and where AI CRO runs
+2. **Custom Selectors**: Target specific elements by ID, class, or other selectors
+3. **A/B Testing**: Run controlled tests with variation groups
+
+See our [Advanced Documentation](https://ai-cro-three.vercel.app/docs) for more details.
+
+## Example Implementation
+
+Here's a complete example of how to integrate AI CRO in Webflow:
+
 ```html
+<!-- In your site's head section -->
+<script async src="https://ai-cro-three.vercel.app/api/client-script/fixed-cors"></script>
 <script>
-  // Global AICRO object
-  window.AICRO = window.AICRO || {};
-</script>
-<script src="https://ai-cro-three.vercel.app/api/client-script"></script>
-```
-
-**Footer Code:**
-```html
-<script>
-  function initAICRO() {
+  // Wait for document to be ready
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if AICRO was loaded successfully
     if (window.AICRO && typeof window.AICRO.init === 'function') {
-      window.AICRO.debug(true).init();
-      return true;
-    }
-    return false;
-  }
-
-  // Try to initialize immediately
-  if (!initAICRO()) {
-    // If not ready, try again when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      if (!initAICRO()) {
-        // If still not ready, try a few more times
-        var attempts = 0;
-        var checkInterval = setInterval(function() {
-          attempts++;
-          if (initAICRO() || attempts >= 50) {
-            clearInterval(checkInterval);
+      // Initialize AICRO with debug mode and audience targeting
+      AICRO.debug(true)
+        .init({
+          pageAudience: 'marketing professionals',
+          pageIntent: 'increase demo signups',
+          autoDetection: {
+            enabled: true,
+            headings: true,
+            buttons: true
           }
-        }, 100);
-      }
-    });
-  }
-</script>
-```
-
-### Testing the Integration
-
-After installation:
-
-1. Open your browser's developer console (F12 or Cmd+Opt+I)
-2. Look for messages starting with `[AI CRO]` to confirm successful initialization
-3. Use `AICRO.testConnection()` in the console to verify API connectivity
-
-### Selector Not Working
-
-If the selector isn't working:
-
-1. Ensure your Webflow site is published
-2. Check that the script is loading (look for network requests to ai-cro-three.vercel.app)
-3. Try using the URL parameter method instead of the bookmarklet
-4. Make sure you're using the correct URL: `https://ai-cro-three.vercel.app/api/client-script` (not client-scrip)
-
-## Advanced Usage
-
-### Setting Page Audience and Intent
-
-You can set audience and intent values for the current page:
-
-```html
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Wait for AICRO to be ready
-    var checkAICRO = setInterval(function() {
-      if (window.AICRO && typeof window.AICRO.init === 'function') {
-        // Initialize
-        window.AICRO.debug(true).init();
+        });
         
-        // Set audience and intent
-        window.AICRO.setPageAudience('new-visitors');
-        window.AICRO.setPageIntent('learn-more');
-        
-        clearInterval(checkAICRO);
-      }
-    }, 100);
-    
-    setTimeout(function() { clearInterval(checkAICRO); }, 5000);
+      console.log('AI CRO initialized successfully');
+    } else {
+      console.error('AICRO not loaded correctly. Check the script URL and for any console errors.');
+    }
   });
 </script>
 ```
 
-### Activating the Selector Through Code
+## Getting Help
 
-You can add a button to your Webflow site that activates the selector:
+If you continue to experience issues with integration:
 
-```html
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Create a button
-    var selectorBtn = document.createElement('button');
-    selectorBtn.innerText = 'Open AI CRO Selector';
-    selectorBtn.style.cssText = 'position:fixed;bottom:20px;left:20px;z-index:9999;background:#2563eb;color:white;border:none;padding:10px 16px;border-radius:4px;cursor:pointer;';
-    
-    // Add click handler
-    selectorBtn.addEventListener('click', function() {
-      if (window.AICRO && typeof window.AICRO.openSelector === 'function') {
-        window.AICRO.openSelector();
-      } else {
-        alert('AI CRO selector not available. Please check the console for errors.');
-      }
-    });
-    
-    // Add button to page
-    document.body.appendChild(selectorBtn);
-  });
-</script>
-```
-
-For more help, contact support at support@ai-cro.com 
+1. Check browser console for specific error messages
+2. Ensure all scripts are correctly loaded
+3. Contact our support team at [support@aicro.com](mailto:support@aicro.com)
+4. Visit our documentation site at [https://ai-cro-three.vercel.app/docs](https://ai-cro-three.vercel.app/docs) 

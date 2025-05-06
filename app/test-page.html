@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI CRO Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 24px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 16px;
+    }
+    pre {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background: #d1fae5;
+      border: 1px solid #10b981;
+    }
+    .error {
+      background: #fee2e2;
+      border: 1px solid #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI CRO Client Script Test</h1>
+  
+  <div>
+    <p>This page tests the AI CRO client script loading.</p>
+    <button id="test-load">Load Client Script</button>
+    <button id="test-load-selector">Load Selector Module</button>
+    <button id="test-bookmarklet">Test Bookmarklet</button>
+  </div>
+  
+  <div id="status-container"></div>
+  
+  <div>
+    <h2>Headings to test</h2>
+    <h3 id="test-heading">This is a test heading for selection</h3>
+    <p id="test-paragraph">This is a test paragraph for selection and content variation testing.</p>
+    <button id="test-button">Test CTA Button</button>
+  </div>
+  
+  <script>
+    document.getElementById('test-load').addEventListener('click', function() {
+      const statusContainer = document.getElementById('status-container');
+      statusContainer.innerHTML = '<div class="status">Loading client script...</div>';
+      
+      try {
+        const script = document.createElement('script');
+        script.src = '/api/client-script';
+        script.async = true;
+        
+        script.onload = function() {
+          statusContainer.innerHTML = '<div class="status success">Client script loaded successfully! Checking for AICRO object...</div>';
+          
+          setTimeout(function() {
+            if (window.AICRO) {
+              statusContainer.innerHTML += '<div class="status success">AICRO object found! Try to initialize with: AICRO.debug(true).init()</div>';
+              
+              try {
+                // Try to initialize
+                window.AICRO.debug(true).init();
+                statusContainer.innerHTML += '<div class="status success">AICRO initialized successfully!</div>';
+              } catch (e) {
+                statusContainer.innerHTML += `<div class="status error">Error initializing AICRO: ${e.message}</div>`;
+              }
+            } else {
+              statusContainer.innerHTML += '<div class="status error">AICRO object not found! Check console for errors.</div>';
+            }
+          }, 500);
+        };
+        
+        script.onerror = function(error) {
+          statusContainer.innerHTML = `<div class="status error">Error loading client script: ${error}</div>`;
+        };
+        
+        document.head.appendChild(script);
+      } catch (e) {
+        statusContainer.innerHTML = `<div class="status error">Error: ${e.message}</div>`;
+      }
+    });
+    
+    document.getElementById('test-load-selector').addEventListener('click', function() {
+      const statusContainer = document.getElementById('status-container');
+      statusContainer.innerHTML = '<div class="status">Loading selector module directly...</div>';
+      
+      try {
+        const script = document.createElement('script');
+        script.src = '/api/selector-module/simple';
+        script.async = true;
+        
+        script.onload = function() {
+          statusContainer.innerHTML = '<div class="status success">Selector module loaded successfully!</div>';
+        };
+        
+        script.onerror = function(error) {
+          statusContainer.innerHTML = `<div class="status error">Error loading selector module: ${error}</div>`;
+        };
+        
+        document.head.appendChild(script);
+      } catch (e) {
+        statusContainer.innerHTML = `<div class="status error">Error: ${e.message}</div>`;
+      }
+    });
+    
+    document.getElementById('test-bookmarklet').addEventListener('click', function() {
+      const statusContainer = document.getElementById('status-container');
+      statusContainer.innerHTML = '<div class="status">Creating and executing bookmarklet code...</div>';
+      
+      try {
+        // Simulate bookmarklet
+        (function() {
+          // Check if already loaded
+          if (window.AICRO_SELECTOR_ACTIVE) {
+            alert('AI CRO selector is already active');
+            return;
+          }
+          
+          // Show loading notification
+          var notice = document.createElement('div');
+          notice.id = 'aicro-loading-notice';
+          notice.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#4CAF50;color:white;padding:8px 16px;border-radius:4px;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,0.2);';
+          notice.textContent = 'Loading AI CRO Element Selector...';
+          document.body.appendChild(notice);
+          
+          // Load the full selector module script
+          var script = document.createElement('script');
+          script.src = '/api/selector-module/simple';
+          script.async = true;
+          
+          // Handle loading errors
+          script.onerror = function() {
+            notice.style.background = '#f44336';
+            notice.textContent = 'Error loading AI CRO Element Selector. Please try again.';
+            setTimeout(function() {
+              document.body.removeChild(notice);
+            }, 3000);
+          };
+          
+          // Add to page
+          document.head.appendChild(script);
+          
+          statusContainer.innerHTML = '<div class="status success">Bookmarklet code executed!</div>';
+        })();
+      } catch (e) {
+        statusContainer.innerHTML = `<div class="status error">Error: ${e.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html> 
