@@ -46,7 +46,7 @@ export async function GET(request) {
       notice.style.borderRadius = '4px';
       notice.style.zIndex = '9999';
       notice.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-      notice.textContent = 'AI CRO Selector activated';
+      notice.textContent = 'AI CRO Element Selector activated - click on elements to select them';
       document.body.appendChild(notice);
       
       // Setup UI variables

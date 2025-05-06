@@ -139,7 +139,7 @@ export async function GET(request) {
           options.autoDetection = { enabled: false };
         }
         
-        // Only enable auto-detection if explicitly requested
+        // Only enable auto-detection if explicitly enabled
         if (options.autoDetection.enabled !== true) {
           options.autoDetection.enabled = false;
         }
@@ -150,10 +150,24 @@ export async function GET(request) {
         log("Initializing with config:", config);
         
         // Set up mutation observer for dynamic content if auto-detection is enabled
-        if (config.autoDetection && config.autoDetection.enabled) {
+        if (config.autoDetection && config.autoDetection.enabled === true) {
+          log("Auto-detection enabled, setting up mutation observer");
           setupMutationObserver();
-          // Start auto-personalizing content
+          
+          // Auto-detect important elements
           detectImportantElements();
+        } else {
+          log("Auto-detection disabled. Only explicitly tagged elements will be personalized.");
+          
+          // Only personalize elements with data-aicro attribute
+          const taggedElements = document.querySelectorAll('[data-aicro]');
+          log("Found", taggedElements.length, "explicitly tagged elements");
+          
+          taggedElements.forEach(element => {
+            const selector = getUniqueSelector(element);
+            // Personalize explicitly tagged elements
+            AICRO.personalize(selector);
+          });
         }
         
         // Push initialization event to GTM
@@ -189,7 +203,7 @@ export async function GET(request) {
           const url = window.location.href;
           
           // Request personalized content from the API
-          fetch(\`\${config.apiHost}/api/personalize\`, {
+          fetch(config.apiHost + '/api/personalize', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -206,7 +220,12 @@ export async function GET(request) {
               skipAutoPersonalization: options.skipAutoPersonalization !== false // Skip by default unless explicitly set to false
             })
           })
-          .then(response => response.json())
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('API responded with status: ' + response.status);
+            }
+            return response.json();
+          })
           .then(data => {
             if (data.personalized) {
               log("Received personalized content:", data);
@@ -219,75 +238,83 @@ export async function GET(request) {
               
               // Apply content to all matching elements
               validElements.forEach(element => {
-                // Preserve element attributes when updating content
-                if (typeof data.content === 'string' && !data.content.trim().startsWith('<')) {
-                  // For text-only content, preserve the existing HTML structure
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = element.innerHTML;
-                  
-                  // Find all text nodes and replace their content
-                  const textNodes = [];
-                  const findTextNodes = function(node) {
-                    if (node.nodeType === 3) { // Text node
-                      textNodes.push(node);
-                    } else if (node.nodeType === 1) { // Element node
-                      for (let i = 0; i < node.childNodes.length; i++) {
-                        findTextNodes(node.childNodes[i]);
+                try {
+                  // Preserve element attributes when updating content
+                  if (typeof data.content === 'string' && !data.content.trim().startsWith('<')) {
+                    // For text-only content, preserve the existing HTML structure
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = element.innerHTML;
+                    
+                    // Find all text nodes and replace their content
+                    const textNodes = [];
+                    const findTextNodes = function(node) {
+                      if (node.nodeType === 3) { // Text node
+                        textNodes.push(node);
+                      } else if (node.nodeType === 1) { // Element node
+                        for (let i = 0; i < node.childNodes.length; i++) {
+                          findTextNodes(node.childNodes[i]);
+                        }
                       }
+                    };
+                    
+                    findTextNodes(tempDiv);
+                    
+                    // Replace the first text node content
+                    if (textNodes.length > 0) {
+                      textNodes[0].nodeValue = data.content;
+                      element.innerHTML = tempDiv.innerHTML;
+                    } else {
+                      // If no text nodes, just set inner text preserving the wrapper
+                      const wrapper = element.cloneNode(false);
+                      wrapper.textContent = data.content;
+                      element.parentNode.replaceChild(wrapper, element);
                     }
-                  };
-                  
-                  findTextNodes(tempDiv);
-                  
-                  // Replace the first text node content
-                  if (textNodes.length > 0) {
-                    textNodes[0].nodeValue = data.content;
-                    element.innerHTML = tempDiv.innerHTML;
                   } else {
-                    // If no text nodes, just set inner text preserving the wrapper
-                    const wrapper = element.cloneNode(false);
-                    wrapper.textContent = data.content;
-                    element.parentNode.replaceChild(wrapper, element);
-                  }
-                } else {
-                  // For HTML content, try to preserve the element's attributes
-                  const originalAttributes = {};
-                  for (let i = 0; i < element.attributes.length; i++) {
-                    const attr = element.attributes[i];
-                    originalAttributes[attr.name] = attr.value;
-                  }
-                  
-                  // Update the inner HTML
-                  element.innerHTML = data.content;
-                  
-                  // Apply the original attributes back to the root element
-                  if (element.tagName.toLowerCase() === 'div' || 
-                      element.tagName.toLowerCase() === 'span') {
-                    // Only restore attributes that don't conflict with the new content
-                    for (const [name, value] of Object.entries(originalAttributes)) {
-                      // Skip data-aicro attributes
-                      if (name.startsWith('data-aicro')) continue;
-                      
-                      // Don't override existing attributes in the new content
-                      if (!element.hasAttribute(name)) {
-                        element.setAttribute(name, value);
+                    // For HTML content, try to preserve the element's attributes
+                    const originalAttributes = {};
+                    for (let i = 0; i < element.attributes.length; i++) {
+                      const attr = element.attributes[i];
+                      originalAttributes[attr.name] = attr.value;
+                    }
+                    
+                    // Update the inner HTML
+                    element.innerHTML = data.content;
+                    
+                    // Apply the original attributes back to the root element
+                    if (element.tagName.toLowerCase() === 'div' || 
+                        element.tagName.toLowerCase() === 'span') {
+                      // Only restore attributes that don't conflict with the new content
+                      for (const [name, value] of Object.entries(originalAttributes)) {
+                        // Skip data-aicro attributes
+                        if (name.startsWith('data-aicro')) continue;
+                        
+                        // Don't override existing attributes in the new content
+                        if (!element.hasAttribute(name)) {
+                          element.setAttribute(name, value);
+                        }
                       }
                     }
                   }
+                
+                  // Mark element as personalized
+                  element.setAttribute('data-aicro-personalized', 'true');
+                  
+                  // Track impression
+                  trackEvent('impression', selector);
+                } catch (elementError) {
+                  console.error("[AI CRO] Error applying content to element:", elementError);
                 }
-                
-                // Mark element as personalized
-                element.setAttribute('data-aicro-personalized', 'true');
-                
-                // Track impression
-                trackEvent('impression', selector);
               });
             } else {
               log("No personalization available for:", selector);
             }
           })
           .catch(error => {
-            console.error("[AI CRO] Error fetching personalized content:", error);
+            console.error("[AI CRO] Error fetching personalized content:", error.message);
+            // Don't retry on CORS errors to avoid console spam
+            if (error.message && !error.message.includes('CORS')) {
+              log("Will retry personalization later");
+            }
           });
         } catch (e) {
           console.error("[AI CRO] Error in personalize:", e);
@@ -328,7 +355,7 @@ export async function GET(request) {
         });
         
         // Send to tracking API
-        fetch(\`\${config.apiHost}/api/track\`, {
+        fetch(config.apiHost + '/api/track', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -775,6 +802,11 @@ export async function GET(request) {
       // Check if element has product description characteristics
       function hasProductDescriptionCharacteristics(element) {
         try {
+          // Skip if element is not valid
+          if (!element || !element.nodeType) {
+            return false;
+          }
+          
           const text = element.textContent.trim();
           
           // Get class names safely
@@ -782,8 +814,8 @@ export async function GET(request) {
           if (element.className) {
             if (typeof element.className === 'string') {
               classNames = element.className.toLowerCase();
-            } else if (element.className.baseVal) {
-              // For SVG elements className is an SVGAnimatedString with baseVal
+            } else if (element.className.baseVal !== undefined) {
+              // For SVG elements, className is an SVGAnimatedString with baseVal
               classNames = element.className.baseVal.toLowerCase();
             } else {
               // If className is not a string and has no baseVal, try getAttribute
@@ -793,7 +825,7 @@ export async function GET(request) {
               }
             }
           }
-          
+        
           // Product descriptions tend to be paragraphs of a certain length
           return element.tagName.toLowerCase() === 'p' && 
                  text.length > 50 && 
@@ -823,6 +855,11 @@ export async function GET(request) {
       // Check if element has banner characteristics
       function hasBannerCharacteristics(element) {
         try {
+          // Skip if element is not valid
+          if (!element || !element.nodeType) {
+            return false;
+          }
+          
           const rect = element.getBoundingClientRect();
           const viewportWidth = window.innerWidth;
           
@@ -831,8 +868,8 @@ export async function GET(request) {
           if (element.className) {
             if (typeof element.className === 'string') {
               classNames = element.className.toLowerCase();
-            } else if (element.className.baseVal) {
-              // For SVG elements className is an SVGAnimatedString with baseVal
+            } else if (element.className.baseVal !== undefined) {
+              // For SVG elements, className is an SVGAnimatedString with baseVal
               classNames = element.className.baseVal.toLowerCase();
             } else {
               // If className is not a string and has no baseVal, try getAttribute
@@ -842,7 +879,7 @@ export async function GET(request) {
               }
             }
           }
-          
+        
           // Banners tend to be full-width or nearly full-width elements
           return rect.width > viewportWidth * 0.8 && 
                  rect.height > 100 && 
