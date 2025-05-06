@@ -58,8 +58,19 @@ export async function GET(request) {
       // This is NOT connected to the main AICRO client script
       window.AICRO_SELECTOR = {
         active: true,
-        apiHost: '${host}'
+        apiHost: '${host}',
+        pageSettings: {}
       };
+      
+      // Try to load saved page settings from localStorage
+      try {
+        const savedPageSettings = localStorage.getItem('AICRO_PAGE_SETTINGS_' + window.location.pathname);
+        if (savedPageSettings) {
+          window.AICRO_SELECTOR.pageSettings = JSON.parse(savedPageSettings);
+        }
+      } catch (e) {
+        console.error('[AI CRO] Error loading saved page settings:', e);
+      }
       
       // Add styles
       addStyles();
@@ -198,6 +209,32 @@ export async function GET(request) {
           </div>
           
           <div class="aicro-selector-content">
+            <div class="aicro-page-settings" style="margin-bottom:16px;padding:12px;background:#f9fafb;border-radius:4px;border:1px solid #e5e7eb;">
+              <h4 style="margin:0 0 8px 0;font-size:14px;font-weight:600;">Page Settings</h4>
+              
+              <label class="aicro-selector-label">Target Audience</label>
+              <input 
+                type="text" 
+                id="aicro-audience" 
+                class="aicro-selector-input" 
+                placeholder="Who is your target audience?"
+                value="${window.AICRO_SELECTOR.pageSettings.audience || ''}"
+              >
+              
+              <label class="aicro-selector-label">Page Goal</label>
+              <input 
+                type="text" 
+                id="aicro-goal" 
+                class="aicro-selector-input" 
+                placeholder="What's your goal? (e.g., drive sales)"
+                value="${window.AICRO_SELECTOR.pageSettings.goal || ''}"
+              >
+              
+              <button id="aicro-save-page-settings" class="aicro-btn aicro-btn-secondary" style="width:100%;">
+                Save Page Settings
+              </button>
+            </div>
+            
             <p style="margin-top:0;margin-bottom:12px;color:#6b7280;">
               Click on elements to select them for testing.
             </p>
@@ -223,21 +260,16 @@ export async function GET(request) {
               </div>
             </div>
             
-            <label class="aicro-selector-label">Target Audience</label>
-            <input 
-              type="text" 
-              id="aicro-audience" 
-              class="aicro-selector-input" 
-              placeholder="Who is your target audience?"
-            >
-            
-            <label class="aicro-selector-label">Page Intent</label>
-            <input 
-              type="text" 
-              id="aicro-intent" 
-              class="aicro-selector-input" 
-              placeholder="What's your goal? (e.g., drive sales)"
-            >
+            <div id="aicro-active-variations" style="margin-top:12px;">
+              <label class="aicro-selector-label">
+                Active Variations
+              </label>
+              <div id="aicro-variations-list" class="aicro-element-list">
+                <div style="padding:20px;text-align:center;color:#9ca3af;">
+                  No variations created yet
+                </div>
+              </div>
+            </div>
           </div>
           
           <div class="aicro-selector-footer">
@@ -303,7 +335,7 @@ export async function GET(request) {
           
           // Get audience and intent values
           const audience = document.getElementById('aicro-audience').value;
-          const intent = document.getElementById('aicro-intent').value;
+          const intent = document.getElementById('aicro-goal').value;
           
           // Show text options for first selected element as demo
           showTextOptionsDialog(selectedElements[0], 0, audience, intent);
@@ -349,62 +381,24 @@ export async function GET(request) {
           </div>
           
           <div style="margin-bottom:16px;">
-            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Text Variations</label>
+            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Text Options</label>
             
-            <div class="aicro-text-option" style="padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;">
-              <div style="display:flex;align-items:flex-start;">
-                <div style="margin-right:8px;">
-                  <input type="radio" name="text-option" id="option-1" style="margin-top:3px;" checked>
-                </div>
-                <div>
-                  <label for="option-1" style="cursor:pointer;">More concise version that focuses on benefits</label>
-                </div>
-              </div>
+            <textarea id="aicro-text-options" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:120px;margin-bottom:12px;">1. More concise version that focuses on benefits
+2. Version with stronger call-to-action language
+3. Version targeting your specific audience
+4. Version emphasizing your main goal</textarea>
+            
+            <div style="text-align:center;margin-bottom:16px;">
+              <button id="aicro-generate-variations-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;">Generate</button>
             </div>
             
-            <div class="aicro-text-option" style="padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;">
-              <div style="display:flex;align-items:flex-start;">
-                <div style="margin-right:8px;">
-                  <input type="radio" name="text-option" id="option-2" style="margin-top:3px;">
-                </div>
-                <div>
-                  <label for="option-2" style="cursor:pointer;">Version with stronger call-to-action language</label>
-                </div>
-              </div>
+            <div id="aicro-generation-status" style="text-align:center;margin-bottom:16px;color:#6b7280;display:none;">
+              Generating variations...
             </div>
             
-            <div class="aicro-text-option" style="padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;">
-              <div style="display:flex;align-items:flex-start;">
-                <div style="margin-right:8px;">
-                  <input type="radio" name="text-option" id="option-3" style="margin-top:3px;">
-                </div>
-                <div>
-                  <label for="option-3" style="cursor:pointer;">Version targeting \${audience || 'your specific audience'}</label>
-                </div>
-              </div>
-            </div>
-            
-            <div class="aicro-text-option" style="padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;">
-              <div style="display:flex;align-items:flex-start;">
-                <div style="margin-right:8px;">
-                  <input type="radio" name="text-option" id="option-4" style="margin-top:3px;">
-                </div>
-                <div>
-                  <label for="option-4" style="cursor:pointer;">Version emphasizing \${intent || 'your main goal'}</label>
-                </div>
-              </div>
-            </div>
-            
-            <div class="aicro-text-option" style="padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;">
-              <div style="display:flex;align-items:flex-start;">
-                <div style="margin-right:8px;">
-                  <input type="radio" name="text-option" id="option-custom" style="margin-top:3px;">
-                </div>
-                <div style="flex-grow:1;">
-                  <label for="option-custom" style="display:block;margin-bottom:4px;cursor:pointer;">Custom Option</label>
-                  <textarea id="aicro-custom-option" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;" placeholder="Write your own alternative..."></textarea>
-                </div>
-              </div>
+            <div id="aicro-generated-variations" style="display:none;">
+              <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Generated Variations</label>
+              <div id="aicro-variations-container"></div>
             </div>
           </div>
           
@@ -420,7 +414,7 @@ export async function GET(request) {
         footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;';
         footer.innerHTML = \`
           <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;">Cancel</button>
-          <button class="aicro-modal-save aicro-btn aicro-btn-primary">Save for A/B Testing</button>
+          <button id="aicro-save-variation-btn" class="aicro-btn aicro-btn-primary" disabled>Save Selected Variation</button>
         \`;
         
         // Assemble modal
@@ -429,6 +423,9 @@ export async function GET(request) {
         modal.appendChild(footer);
         modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
+        
+        // Selected variation
+        let selectedVariation = null;
         
         // Event listeners
         document.querySelector('.aicro-modal-close').addEventListener('click', () => {
@@ -439,61 +436,132 @@ export async function GET(request) {
           document.body.removeChild(modalOverlay);
         });
         
-        document.querySelector('.aicro-modal-save').addEventListener('click', () => {
-          // Find the selected option
-          let selectedOption = '';
+        // Generate button event handler
+        document.getElementById('aicro-generate-variations-btn').addEventListener('click', () => {
+          // Show status
+          const statusEl = document.getElementById('aicro-generation-status');
+          statusEl.style.display = 'block';
           
-          document.querySelectorAll('.aicro-text-option input[type="radio"]').forEach((radio, i) => {
-            if (radio.checked) {
-              if (radio.id === 'option-custom') {
-                selectedOption = document.getElementById('aicro-custom-option').value;
-              } else {
-                // For demo purposes, we're just using placeholder text
-                // In a real implementation, these would be actual generated variations
-                const variationTexts = [
-                  "More concise version focused on benefits",
-                  "Stronger call-to-action language version",
-                  \`Version targeting ${audience || 'specific audience'}`,
-                  \`Version emphasizing ${intent || 'main goal'}`
-                ];
-                selectedOption = variationTexts[i];
-              }
-            }
-          });
+          // Get the options from textarea
+          const optionsText = document.getElementById('aicro-text-options').value;
           
-          if (!selectedOption) {
-            alert('Please select a variation or write a custom one.');
+          // Mock generation delay - in a real implementation this would call the API
+          setTimeout(() => {
+            generateVariations(optionsText, item, audience, intent);
+          }, 1500);
+        });
+        
+        document.getElementById('aicro-save-variation-btn').addEventListener('click', () => {
+          if (!selectedVariation) {
+            alert('Please select a variation first.');
             return;
           }
           
           // Save the variation to the server
-          saveVariation(item, selectedOption, audience, intent);
+          saveVariation(item, selectedVariation, audience, intent);
           
           document.body.removeChild(modalOverlay);
         });
         
-        // Add click handlers for options
-        document.querySelectorAll('.aicro-text-option').forEach(option => {
-          option.addEventListener('click', () => {
-            // Deselect all options
-            document.querySelectorAll('.aicro-text-option').forEach(el => {
+        // Generate variations function
+        function generateVariations(optionsText, item, audience, intent) {
+          const statusEl = document.getElementById('aicro-generation-status');
+          const variationsContainer = document.getElementById('aicro-variations-container');
+          const generatedSection = document.getElementById('aicro-generated-variations');
+          
+          // Parse the options text into an array
+          const options = optionsText
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(line => {
+              // Remove any numbering (like "1. ")
+              return line.replace(/^\d+[\.\)]\s*/, '');
+            });
+          
+          // Hide status and show generated section
+          statusEl.style.display = 'none';
+          generatedSection.style.display = 'block';
+          
+          // Clear container
+          variationsContainer.innerHTML = '';
+          
+          // Add options to container
+          if (options.length > 0) {
+            options.forEach((option, i) => {
+              const variationEl = document.createElement('div');
+              variationEl.className = 'aicro-text-variation';
+              variationEl.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;';
+              variationEl.dataset.variation = option;
+              
+              variationEl.innerHTML = \`
+                <div style="white-space:pre-wrap;">
+                  \${option}
+                </div>
+              \`;
+              
+              variationsContainer.appendChild(variationEl);
+              
+              // Add click handler
+              variationEl.addEventListener('click', () => {
+                // Deselect all variations
+                document.querySelectorAll('.aicro-text-variation').forEach(el => {
+                  el.style.borderColor = '#d1d5db';
+                  el.style.background = 'white';
+                });
+                
+                // Select this variation
+                variationEl.style.borderColor = '#3b82f6';
+                variationEl.style.background = '#f0f7ff';
+                
+                // Update selected variation
+                selectedVariation = option;
+                
+                // Enable save button
+                document.getElementById('aicro-save-variation-btn').disabled = false;
+              });
+            });
+          } else {
+            variationsContainer.innerHTML = '<div style="color:#ef4444;text-align:center;padding:12px;">No options to generate from. Please add some text options.</div>';
+          }
+          
+          // Add custom variation input
+          const customVariation = document.createElement('div');
+          customVariation.className = 'aicro-text-variation';
+          customVariation.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;';
+          
+          customVariation.innerHTML = \`
+            <div style="margin-bottom:8px;font-weight:500;">Custom Variation</div>
+            <textarea id="aicro-custom-variation" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;" placeholder="Write your own variation..."></textarea>
+            <button id="aicro-use-custom-btn" class="aicro-btn aicro-btn-secondary" style="width:100%;margin-top:8px;">Use This Variation</button>
+          \`;
+          
+          variationsContainer.appendChild(customVariation);
+          
+          // Add event listener for custom variation button
+          document.getElementById('aicro-use-custom-btn').addEventListener('click', () => {
+            const customText = document.getElementById('aicro-custom-variation').value.trim();
+            
+            if (!customText) {
+              alert('Please enter some text for your custom variation.');
+              return;
+            }
+            
+            // Update selected variation
+            selectedVariation = customText;
+            
+            // Enable save button
+            document.getElementById('aicro-save-variation-btn').disabled = false;
+            
+            // Visual feedback
+            document.querySelectorAll('.aicro-text-variation').forEach(el => {
               el.style.borderColor = '#d1d5db';
               el.style.background = 'white';
-              el.querySelector('input').checked = false;
             });
             
-            // Select this option
-            option.style.borderColor = '#3b82f6';
-            option.style.background = '#f0f7ff';
-            option.querySelector('input').checked = true;
+            customVariation.style.borderColor = '#3b82f6';
+            customVariation.style.background = '#f0f7ff';
           });
-        });
-        
-        // Select the first option by default
-        const firstOption = document.querySelector('.aicro-text-option');
-        if (firstOption) {
-          firstOption.style.borderColor = '#3b82f6';
-          firstOption.style.background = '#f0f7ff';
         }
       }
       
@@ -519,7 +587,7 @@ export async function GET(request) {
           };
           
           // Send to server
-          fetch(\`\${window.AICRO_SELECTOR.apiHost}/api/save-test\`, {
+          fetch(window.AICRO_SELECTOR.apiHost + '/api/save-test', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -543,7 +611,7 @@ export async function GET(request) {
                 <p style="margin-bottom:16px;">Your test has been saved. To display this test on your website:</p>
                 <ol style="margin-bottom:16px;padding-left:24px;">
                   <li style="margin-bottom:8px;">Add the AI CRO client script to your website:</li>
-                  <pre style="background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto;margin-bottom:16px;"><code>&lt;script async src="${window.AICRO_SELECTOR.apiHost}/api/client-script"&gt;&lt;/script&gt;</code></pre>
+                  <pre style="background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto;margin-bottom:16px;"><code>&lt;script async src="' + window.AICRO_SELECTOR.apiHost + '/api/client-script"&gt;&lt;/script&gt;</code></pre>
                   <li style="margin-bottom:8px;">Initialize it with your user ID:</li>
                   <pre style="background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto;margin-bottom:16px;"><code>&lt;script&gt;
   document.addEventListener('DOMContentLoaded', function() {
@@ -689,26 +757,26 @@ export async function GET(request) {
       
       // Toggle element selection
       function toggleElementSelection(element) {
-        const index = selectedElements.findIndex(e => e.element === element);
-        
-        if (index > -1) {
-          // Remove selection
-          element.classList.remove('aicro-selected');
-          selectedElements.splice(index, 1);
-        } else {
-          // Add selection
-          element.classList.add('aicro-selected');
-          element.classList.remove('aicro-highlight');
-          
-          // Store element data
-          selectedElements.push({
-            element: element,
-            selector: generateSelector(element),
-            originalContent: element.innerHTML,
-            type: element.tagName.toLowerCase(),
-            text: element.innerText || element.textContent
+        // If we have a selected element, deselect it first
+        if (selectedElements.length > 0) {
+          selectedElements.forEach(item => {
+            item.element.classList.remove('aicro-selected');
           });
+          selectedElements = [];
         }
+        
+        // Now select the new element
+        element.classList.add('aicro-selected');
+        element.classList.remove('aicro-highlight');
+        
+        // Store element data
+        selectedElements.push({
+          element: element,
+          selector: generateSelector(element),
+          originalContent: element.innerHTML,
+          type: element.tagName.toLowerCase(),
+          text: element.innerText || element.textContent
+        });
         
         updateElementList();
       }
