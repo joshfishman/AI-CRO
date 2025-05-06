@@ -25,7 +25,7 @@ export async function GET(request) {
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-cro-three.vercel.app';
 
-  // Create a completely self-contained bookmarklet
+  // Create a completely self-contained bookmarklet - fixing template literals
   const bookmarkletScript = `
     (function() {
       // Prevent multiple initializations
@@ -34,6 +34,20 @@ export async function GET(request) {
         return;
       }
       window.AICRO_SELECTOR_ACTIVE = true;
+      
+      // Setup UI variables
+      var selectedElements = [];
+      var selectorUI = null;
+      var selectorStyle = null;
+      
+      // Initialize a simple standalone selector namespace
+      // This is NOT connected to the main AICRO client script
+      window.AICRO_SELECTOR = {
+        active: true,
+        apiHost: '${host}',
+        pageSettings: {},
+        selectingEnabled: true
+      };
       
       // Create notification
       var notice = document.createElement('div');
@@ -62,20 +76,6 @@ export async function GET(request) {
           return false;
         }
       }, true); // Capture phase
-      
-      // Setup UI variables
-      var selectedElements = [];
-      var selectorUI = null;
-      var selectorStyle = null;
-      
-      // Initialize a simple standalone selector namespace
-      // This is NOT connected to the main AICRO client script
-      window.AICRO_SELECTOR = {
-        active: true,
-        apiHost: '${host}',
-        pageSettings: {},
-        selectingEnabled: true
-      };
       
       // Try to load saved page settings from localStorage
       try {
@@ -110,7 +110,7 @@ export async function GET(request) {
       // Add styles function
       function addStyles() {
         selectorStyle = document.createElement('style');
-        selectorStyle.textContent = \`
+        selectorStyle.textContent = \\\`
           .aicro-highlight {
             outline: 2px dashed #3b82f6 !important;
             cursor: pointer !important;
@@ -209,7 +209,7 @@ export async function GET(request) {
             justify-content: space-between;
             margin-bottom: 12px;
           }
-        \`;
+        \\\`;
         document.head.appendChild(selectorStyle);
       }
       
@@ -217,7 +217,7 @@ export async function GET(request) {
       function createUI() {
         selectorUI = document.createElement('div');
         selectorUI.className = 'aicro-selector-ui';
-        selectorUI.innerHTML = \`
+        selectorUI.innerHTML = \\\`
           <div class="aicro-selector-header">
             <h3 style="margin:0;font-size:16px;font-weight:600;">AI CRO Selector</h3>
             <button id="aicro-close-btn" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;">×</button>
@@ -233,7 +233,7 @@ export async function GET(request) {
                 id="aicro-audience" 
                 class="aicro-selector-input" 
                 placeholder="Who is your target audience?"
-                value="${window.AICRO_SELECTOR.pageSettings.audience || ''}"
+                value="\${window.AICRO_SELECTOR.pageSettings.audience || ''}"
               >
               
               <label class="aicro-selector-label">Page Goal</label>
@@ -242,7 +242,7 @@ export async function GET(request) {
                 id="aicro-goal" 
                 class="aicro-selector-input" 
                 placeholder="What's your goal? (e.g., drive sales)"
-                value="${window.AICRO_SELECTOR.pageSettings.goal || ''}"
+                value="\${window.AICRO_SELECTOR.pageSettings.goal || ''}"
               >
               
               <button id="aicro-save-page-settings" class="aicro-btn aicro-btn-secondary" style="width:100%;">
@@ -291,7 +291,7 @@ export async function GET(request) {
             <button id="aicro-clear-btn" class="aicro-btn aicro-btn-secondary">Clear All</button>
             <button id="aicro-generate-btn" class="aicro-btn aicro-btn-primary">Generate</button>
           </div>
-        \`;
+        \\\`;
         document.body.appendChild(selectorUI);
       }
       
@@ -382,10 +382,10 @@ export async function GET(request) {
         // Header
         const header = document.createElement('div');
         header.style.cssText = 'padding:16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;';
-        header.innerHTML = \`
+        header.innerHTML = \\\`
           <h3 style="margin:0;font-size:16px;font-weight:600;">Generate Content Options</h3>
           <button class="aicro-modal-close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;">×</button>
-        \`;
+        \\\`;
         
         // Content
         const content = document.createElement('div');
@@ -393,7 +393,7 @@ export async function GET(request) {
         content.style.cssText = 'padding:16px;overflow-y:auto;flex:1;pointer-events:auto;';
         
         // Original text section
-        content.innerHTML = \`
+        content.innerHTML = \\\`
           <div style="margin-bottom:16px;pointer-events:auto;">
             <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;pointer-events:auto;">Selected Element</label>
             <div style="padding:12px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;margin-bottom:16px;pointer-events:auto;">
@@ -423,16 +423,16 @@ export async function GET(request) {
               <div id="aicro-variations-container" style="pointer-events:auto;"></div>
             </div>
           </div>
-        \`;
+        \\\`;
         
         // Footer
         const footer = document.createElement('div');
         footer.className = 'aicro-modal-footer';
         footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;pointer-events:auto;';
-        footer.innerHTML = \`
+        footer.innerHTML = \\\`
           <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;pointer-events:auto;">Cancel</button>
           <button id="aicro-save-variation-btn" class="aicro-btn aicro-btn-primary" disabled style="pointer-events:auto;">Generate</button>
-        \`;
+        \\\`;
         
         // Assemble modal
         modal.appendChild(header);
@@ -537,11 +537,11 @@ export async function GET(request) {
               variationEl.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;pointer-events:auto;'; // Ensure it gets pointer events
               variationEl.dataset.variation = option;
               
-              variationEl.innerHTML = \`
+              variationEl.innerHTML = \\\`
                 <div style="white-space:pre-wrap;">
                   \${option}
                 </div>
-              \`;
+              \\\`;
               
               variationsContainer.appendChild(variationEl);
               
@@ -573,11 +573,11 @@ export async function GET(request) {
           customVariation.className = 'aicro-text-variation';
           customVariation.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;pointer-events:auto;'; // Ensure it gets pointer events
           
-          customVariation.innerHTML = \`
+          customVariation.innerHTML = \\\`
             <div style="margin-bottom:8px;font-weight:500;">Custom Variation</div>
             <textarea id="aicro-custom-variation" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;pointer-events:auto;" placeholder="Write your own variation..."></textarea>
             <button id="aicro-use-custom-btn" class="aicro-btn aicro-btn-secondary" style="width:100%;margin-top:8px;pointer-events:auto;">Use This Variation</button>
-          \`;
+          \\\`;
           
           variationsContainer.appendChild(customVariation);
           
@@ -685,7 +685,7 @@ export async function GET(request) {
             setTimeout(() => {
               const instructionsDialog = document.createElement('div');
               instructionsDialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:24px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:999999;max-width:90%;width:500px;';
-              instructionsDialog.innerHTML = \`
+              instructionsDialog.innerHTML = \\\`
                 <h3 style="margin-top:0;font-size:18px;margin-bottom:16px;">A/B Test Created!</h3>
                 <p style="margin-bottom:16px;">Your test has been saved. To display this test on your website:</p>
                 <ol style="margin-bottom:16px;padding-left:24px;">
@@ -703,7 +703,7 @@ export async function GET(request) {
                 <div style="text-align:right;">
                   <button id="aicro-close-instructions" style="background:#3b82f6;color:white;padding:8px 16px;border-radius:4px;border:none;cursor:pointer;">Got it!</button>
                 </div>
-              \`;
+              \\\`;
               document.body.appendChild(instructionsDialog);
               
               // Remove saving dialog
@@ -935,7 +935,7 @@ export async function GET(request) {
             displayText = displayText.substring(0, 27) + '...';
           }
           
-          el.innerHTML = \`
+          el.innerHTML = \\\`
             <div>
               <div style="font-weight:500;">\${item.type}</div>
               <div style="font-size:12px;color:#6b7280;">\${displayText}</div>
@@ -943,7 +943,7 @@ export async function GET(request) {
             <div style="display:flex;align-items:center;">
               <button class="aicro-remove-element" data-index="\${i}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;">×</button>
             </div>
-          \`;
+          \\\`;
           
           listEl.appendChild(el);
         });
