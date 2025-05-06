@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-  // Get the host URL
-  const host = process.env.NEXT_PUBLIC_SITE_URL 
+  // Get the request headers and URL
+  const url = new URL(request.url);
+  const host = url.searchParams.get('host') || process.env.NEXT_PUBLIC_SITE_URL 
     ? process.env.NEXT_PUBLIC_SITE_URL
     : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
@@ -28,11 +29,15 @@ export async function GET(request) {
     loadingDiv.textContent = 'Loading AI CRO Selector...';
     document.body.appendChild(loadingDiv);
     
+    // Store the current page origin
+    var pageOrigin = window.location.origin;
+    
     // Function to load the main script
     function loadMainScript() {
       return new Promise(function(resolve, reject) {
         var script = document.createElement('script');
-        script.src = '${host}/api/external-script?debug=true';
+        // Use the origin parameter to allow the proper CORS handling
+        script.src = '${host}/api/external-script?debug=true&origin=' + encodeURIComponent(pageOrigin);
         script.async = true;
         script.crossOrigin = "anonymous";
         
@@ -101,4 +106,4 @@ export async function GET(request) {
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
-} 
+}
