@@ -92,10 +92,6 @@ export async function GET(request) {
       highlight.className = 'aicro-element-highlight';
       highlight.style.display = 'none';
       
-      var controls = document.createElement('div');
-      controls.className = 'aicro-selector-controls';
-      controls.innerHTML = '<button class="select">Select Element</button><button class="cancel">Cancel</button>';
-      
       var info = document.createElement('div');
       info.className = 'aicro-selector-info';
       info.textContent = 'Hover over an element and click to select it';
@@ -116,6 +112,7 @@ export async function GET(request) {
         </div>
         <div class="aicro-bottom-bar-actions">
           <button id="aicro-save-settings" class="aicro-btn aicro-btn-primary">Save Settings</button>
+          <button id="aicro-exit-selector" class="aicro-btn aicro-btn-secondary">Exit Selector</button>
         </div>
       \`;
       
@@ -155,7 +152,6 @@ export async function GET(request) {
       // Add all UI elements to document
       document.body.appendChild(overlay);
       document.body.appendChild(highlight);
-      document.body.appendChild(controls);
       document.body.appendChild(info);
       document.body.appendChild(bottomBar);
       document.body.appendChild(elementPanel);
@@ -163,7 +159,6 @@ export async function GET(request) {
       return { 
         overlay, 
         highlight, 
-        controls, 
         info, 
         bottomBar,
         elementPanel
@@ -234,23 +229,82 @@ export async function GET(request) {
       intent: ''
     };
     
-    // Mock function for generating variations (in a real implementation, this would call an API)
-    function mockGenerateVariations(element, prompt) {
-      return new Promise(function(resolve) {
-        // Simulate API call delay
-        setTimeout(function() {
-          // Get the text content of the element for context
-          var originalText = element.textContent.trim();
+    // Function to generate variations using the AI CRO API
+    function generateVariationsWithAPI(element, prompt) {
+      return new Promise(function(resolve, reject) {
+        // Get the element content
+        var elementContent = element.textContent.trim();
+        var selector = generateSelector(element);
+        
+        // Prepare the request data
+        var requestData = {
+          element: {
+            content: elementContent,
+            selector: selector,
+            tagName: element.tagName.toLowerCase(),
+            type: "text"
+          },
+          prompt: prompt,
+          audience: pageSettings.audience || null,
+          intent: pageSettings.intent || null,
+          page: {
+            url: window.location.href,
+            title: document.title
+          }
+        };
+        
+        console.log('[AI CRO] Sending request to generate variations:', requestData);
+        
+        // Add a timestamp to the URL to bypass caching
+        var timestamp = new Date().getTime();
+        var apiUrl = 'https://ai-cro-three.vercel.app/api/generate-variations?t=' + timestamp;
+        
+        // Make the API request to generate variations
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          },
+          body: JSON.stringify(requestData)
+        })
+        .then(function(response) {
+          console.log('[AI CRO] API response status:', response.status);
+          if (!response.ok) {
+            throw new Error('API request failed with status ' + response.status);
+          }
+          return response.json();
+        })
+        .then(function(data) {
+          console.log('[AI CRO] API response data:', data);
           
-          // Generate mock variations based on original content
-          var variations = [
-            { id: 1, content: "✨ " + originalText + " (Variation 1 - More engaging version)" },
-            { id: 2, content: "🚀 " + originalText + " (Variation 2 - More action-oriented)" },
-            { id: 3, content: "💯 " + originalText + " (Variation 3 - More persuasive wording)" }
+          if (data && data.variations) {
+            console.log('[AI CRO] Successfully received variations from API');
+            resolve(data.variations);
+          } else {
+            // Fallback if API response format is unexpected
+            console.error('[AI CRO] Unexpected API response format:', data);
+            
+            // Generate fallback variations
+            var fallbackVariations = [
+              { id: 1, content: "✨ " + elementContent + " (Fallback variation 1 - API format error)" },
+              { id: 2, content: "🚀 " + elementContent + " (Fallback variation 2 - API format error)" },
+              { id: 3, content: "💯 " + elementContent + " (Fallback variation 3 - API format error)" }
+            ];
+            resolve(fallbackVariations);
+          }
+        })
+        .catch(function(error) {
+          console.error('[AI CRO] Error calling generate-variations API:', error);
+          
+          // Generate fallback variations in case of API failure
+          var fallbackVariations = [
+            { id: 1, content: "✨ " + elementContent + " (Fallback after API error: " + error.message + ")" },
+            { id: 2, content: "🚀 " + elementContent + " (Fallback after API error: " + error.message + ")" },
+            { id: 3, content: "💯 " + elementContent + " (Fallback after API error: " + error.message + ")" }
           ];
-          
-          resolve(variations);
-        }, 1500);
+          resolve(fallbackVariations);
+        });
       });
     }
     
@@ -313,42 +367,50 @@ export async function GET(request) {
       document.getElementById('aicro-generate').textContent = 'Generating...';
       document.getElementById('aicro-generate').disabled = true;
       
-      // Call mock generation function (this would be a real API call in production)
-      mockGenerateVariations(element, prompt).then(function(variations) {
-        // Reset button
-        document.getElementById('aicro-generate').textContent = 'Generate Variations';
-        document.getElementById('aicro-generate').disabled = false;
-        
-        // Populate results
-        var resultsListHtml = '';
-        variations.forEach(function(variation) {
-          resultsListHtml += \`
-            <div class="aicro-result-item" data-id="\${variation.id}">
-              \${variation.content}
-            </div>
-          \`;
-        });
-        
-        document.getElementById('aicro-results-list').innerHTML = resultsListHtml;
-        document.getElementById('aicro-results-section').style.display = 'block';
-        
-        // Add click handlers to result items
-        var resultItems = document.querySelectorAll('.aicro-result-item');
-        resultItems.forEach(function(item) {
-          item.addEventListener('click', function() {
-            // Toggle selected class
-            resultItems.forEach(function(i) { i.classList.remove('selected'); });
-            item.classList.add('selected');
-            
-            // Update apply button to show selected
-            document.getElementById('aicro-generate').textContent = 'Apply Selected Variation';
-            document.getElementById('aicro-generate').onclick = function() {
-              var selectedVariation = item.textContent.trim();
-              applyVariation(element, selectedVariation);
-            };
+      // Call the API to generate variations
+      generateVariationsWithAPI(element, prompt)
+        .then(function(variations) {
+          // Reset button
+          document.getElementById('aicro-generate').textContent = 'Generate Variations';
+          document.getElementById('aicro-generate').disabled = false;
+          
+          // Populate results
+          var resultsListHtml = '';
+          variations.forEach(function(variation) {
+            resultsListHtml += \`
+              <div class="aicro-result-item" data-id="\${variation.id}">
+                \${variation.content}
+              </div>
+            \`;
           });
+          
+          document.getElementById('aicro-results-list').innerHTML = resultsListHtml;
+          document.getElementById('aicro-results-section').style.display = 'block';
+          
+          // Add click handlers to result items
+          var resultItems = document.querySelectorAll('.aicro-result-item');
+          resultItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+              // Toggle selected class
+              resultItems.forEach(function(i) { i.classList.remove('selected'); });
+              item.classList.add('selected');
+              
+              // Update apply button to show selected
+              document.getElementById('aicro-generate').textContent = 'Apply Selected Variation';
+              document.getElementById('aicro-generate').onclick = function() {
+                var selectedVariation = item.textContent.trim();
+                applyVariation(element, selectedVariation);
+              };
+            });
+          });
+        })
+        .catch(function(error) {
+          console.error('Failed to generate variations:', error);
+          document.getElementById('aicro-generate').textContent = 'Generate Variations';
+          document.getElementById('aicro-generate').disabled = false;
+          document.getElementById('aicro-results-list').innerHTML = '<div style="padding: 16px; color: #ef4444;">Error generating variations. Please try again.</div>';
+          document.getElementById('aicro-results-section').style.display = 'block';
         });
-      });
     }
     
     // Apply a selected variation to the element
@@ -470,7 +532,6 @@ export async function GET(request) {
       // Hide UI components
       ui.overlay.style.display = 'none';
       ui.highlight.style.display = 'none';
-      ui.controls.style.display = 'none';
       ui.info.style.display = 'none';
       ui.bottomBar.style.display = 'none';
       ui.elementPanel.style.display = 'none';
@@ -493,23 +554,17 @@ export async function GET(request) {
     document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('click', handleClick);
     
-    // Set up control button event listeners
-    ui.controls.querySelector('.select').addEventListener('click', function() {
-      if (currentElement) {
-        showElementPanel(currentElement);
-      }
-    });
+    // Set up save settings button
+    document.getElementById('aicro-save-settings').addEventListener('click', savePageSettings);
     
-    ui.controls.querySelector('.cancel').addEventListener('click', function() {
+    // Add event listener for the new exit selector button
+    document.getElementById('aicro-exit-selector').addEventListener('click', function() {
       stopSelector();
       // Remove loading indicator
       if (document.body.contains(loadingDiv)) {
         document.body.removeChild(loadingDiv);
       }
     });
-    
-    // Set up save settings button
-    document.getElementById('aicro-save-settings').addEventListener('click', savePageSettings);
     
     // Update loading indicator
     loadingDiv.textContent = 'Hover over elements to select';
