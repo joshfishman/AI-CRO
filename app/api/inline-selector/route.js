@@ -132,6 +132,23 @@ export async function GET(request) {
           </div>
           
           <div class="aicro-panel-section">
+            <div class="aicro-panel-label">Element Type</div>
+            <select id="aicro-element-type" class="aicro-field-input" style="background: white; color: #333;">
+              <option value="text">General Text</option>
+              <option value="headline">Headline/Title</option>
+              <option value="subheadline">Subheadline</option>
+              <option value="paragraph">Paragraph</option>
+              <option value="cta">Call to Action/Button</option>
+              <option value="link">Link</option>
+              <option value="product">Product Description</option>
+              <option value="feature">Feature Description</option>
+              <option value="benefit">Benefit Statement</option>
+              <option value="testimonial">Testimonial/Review</option>
+              <option value="price">Price/Offer</option>
+            </select>
+          </div>
+          
+          <div class="aicro-panel-section">
             <div class="aicro-panel-label">Generation Prompt</div>
             <textarea id="aicro-generation-prompt" class="aicro-panel-textarea" placeholder="Describe what variations you want to generate...">Generate 3 variations of this content that would appeal to the target audience and better achieve the page intent.</textarea>
           </div>
@@ -235,6 +252,7 @@ export async function GET(request) {
         // Get the element content
         var elementContent = element.textContent.trim();
         var selector = generateSelector(element);
+        var elementType = document.getElementById('aicro-element-type').value || 'text';
         
         // Prepare the request data
         var requestData = {
@@ -242,14 +260,21 @@ export async function GET(request) {
             content: elementContent,
             selector: selector,
             tagName: element.tagName.toLowerCase(),
-            type: "text"
+            type: elementType,
+            attributes: {
+              className: element.className || '',
+              id: element.id || '',
+              href: element.href || '',
+              src: element.src || ''
+            }
           },
           prompt: prompt,
           audience: pageSettings.audience || null,
           intent: pageSettings.intent || null,
           page: {
             url: window.location.href,
-            title: document.title
+            title: document.title,
+            path: window.location.pathname
           }
         };
         
@@ -327,8 +352,29 @@ export async function GET(request) {
       
       document.getElementById('aicro-selected-element-info').innerHTML = elementInfoHtml;
       
+      // Auto-select appropriate element type based on tag and attributes
+      var elementTypeSelect = document.getElementById('aicro-element-type');
+      
+      // Set default based on element
+      if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3') {
+        elementTypeSelect.value = 'headline';
+      } else if (tagName === 'h4' || tagName === 'h5' || tagName === 'h6') {
+        elementTypeSelect.value = 'subheadline';
+      } else if (tagName === 'p') {
+        elementTypeSelect.value = 'paragraph';
+      } else if (tagName === 'button' || 
+                (tagName === 'a' && (element.className.includes('btn') || element.className.includes('button')))) {
+        elementTypeSelect.value = 'cta';
+      } else if (tagName === 'a') {
+        elementTypeSelect.value = 'link';
+      } else {
+        elementTypeSelect.value = 'text';
+      }
+      
       // Set default prompt with audience and intent if available
-      var promptTemplate = "Generate 3 variations of this content";
+      var promptTemplate = "Generate 3 variations of this ";
+      promptTemplate += elementTypeSelect.value + " content";
+      
       if (pageSettings.audience) {
         promptTemplate += " for " + pageSettings.audience;
       }
@@ -350,6 +396,20 @@ export async function GET(request) {
       document.getElementById('aicro-cancel-panel').onclick = hideElementPanel;
       document.getElementById('aicro-generate').onclick = function() {
         generateVariations(element);
+      };
+      
+      // Add listener for element type change to update prompt
+      document.getElementById('aicro-element-type').onchange = function() {
+        var currentPrompt = document.getElementById('aicro-generation-prompt').value;
+        var selectedType = document.getElementById('aicro-element-type').value;
+        
+        // Replace the element type in the prompt
+        var updatedPrompt = currentPrompt.replace(
+          /Generate 3 variations of this (.*?) content/,
+          'Generate 3 variations of this ' + selectedType + ' content'
+        );
+        
+        document.getElementById('aicro-generation-prompt').value = updatedPrompt;
       };
     }
     

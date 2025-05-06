@@ -129,10 +129,52 @@ Every output should:
 - Create significantly different variations that test different approaches
 - Be ready to use without further editing
 
-You'll be generating variations of existing website text to test for better performance. The variations should be distinctive but maintain the core messaging and purpose.`;
+You'll be generating variations of existing website text to test for better performance. The variations should be distinctive but maintain the core messaging and purpose.
+
+For different element types:
+- Headings (h1, h2, h3, etc.): Create clear, benefit-driven headlines that grab attention
+- Paragraphs (p): Maintain readability while improving persuasiveness and conversion potential
+- Buttons/CTAs: Use action verbs and create urgency without being pushy
+- Links (a): Clarify the value of clicking and improve click-through rate
+- Images (alt text/captions): Enhance descriptiveness and emotional appeal
+
+Always consider:
+- The specific audience you're targeting
+- The page goal/conversion intent
+- The page context including title and URL
+- The element's purpose within the page`;
       
       // Enhanced user prompt with context and clear instructions
       let userPrompt = `Generate 3 distinctive, high-converting variations of the following website content: "${content}"`;
+      
+      // Include element information if available
+      if (element) {
+        const elementType = element.type || (element.tagName ? element.tagName.toLowerCase() : 'text');
+        userPrompt = `Generate 3 distinctive, high-converting variations of the following website ${elementType} content: "${content}"`;
+        
+        // Add specific guidance based on element type
+        if (elementType === 'headline' || elementType === 'title') {
+          userPrompt += `\n\nFor headlines: Create clear, benefit-driven headlines that grab attention while maintaining clarity.`;
+        } else if (elementType === 'subheadline') {
+          userPrompt += `\n\nFor subheadlines: Support the main headline while adding detail and encouraging continued reading.`;
+        } else if (elementType === 'paragraph') {
+          userPrompt += `\n\nFor paragraphs: Maintain readability while improving persuasiveness and addressing potential objections.`;
+        } else if (elementType === 'cta' || elementType.includes('button')) {
+          userPrompt += `\n\nFor CTAs/buttons: Use compelling action verbs and create a sense of value or urgency.`;
+        } else if (elementType === 'link') {
+          userPrompt += `\n\nFor links: Clarify the value of clicking and use verbs that encourage action.`;
+        } else if (elementType === 'product') {
+          userPrompt += `\n\nFor product descriptions: Focus on benefits over features and create emotional connection.`;
+        } else if (elementType === 'feature') {
+          userPrompt += `\n\nFor feature descriptions: Connect features to benefits and explain why they matter.`;
+        } else if (elementType === 'benefit') {
+          userPrompt += `\n\nFor benefit statements: Make benefits concrete, specific, and relevant to the audience.`;
+        } else if (elementType === 'testimonial') {
+          userPrompt += `\n\nFor testimonials: Maintain authenticity while highlighting the most impactful points.`;
+        } else if (elementType === 'price' || elementType.includes('offer')) {
+          userPrompt += `\n\nFor pricing/offers: Frame the value proposition clearly and reduce perceived friction.`;
+        }
+      }
       
       if (prompt) {
         userPrompt += `\n\nSpecific instructions: ${prompt}`;
@@ -146,7 +188,18 @@ You'll be generating variations of existing website text to test for better perf
         userPrompt += `\n\nPage goal/conversion intent: ${intent}`;
       }
       
-      userPrompt += `\n\nEach variation should take a completely different angle or approach to effectively test which messaging resonates best with the audience.
+      // Add page context if available
+      if (page && page.title) {
+        userPrompt += `\n\nPage title: "${page.title}"`;
+      }
+      
+      if (page && page.url) {
+        userPrompt += `\n\nPage URL: ${page.url}`;
+      }
+      
+      userPrompt += `\n\nEach variation should take a completely different angle or approach to effectively test which messaging resonates best with the audience while maintaining the purpose of this ${element.tagName || 'element'}.`;
+      
+      userPrompt += `
 
 Return your response in this exact JSON format:
 {
