@@ -93,13 +93,22 @@ async function generateVariations(content, prompt, audience, intent) {
         apiKey: process.env.OPENAI_API_KEY
       });
       
-      // Construct a detailed prompt
-      const systemPrompt = `You are an expert conversion rate optimization specialist who creates compelling variations of website content.`;
+      // Expert copywriter system prompt
+      const systemPrompt = `You are an expert conversion copywriter and SEO strategist. You specialize in writing high-performing website content that improves click-through rates, user engagement, and search engine visibility. Your job is to write concise, persuasive, and benefit-focused copy for website headlines, subheadlines, calls-to-action, and product descriptions.
+
+Every output should:
+- Match the brand's tone and speak directly to its ideal audience
+- Clearly communicate value and differentiation
+- Be optimized for both human readers and search engines (SEO)
+- Follow web best practices (e.g., front-load value, avoid jargon, keep CTAs action-oriented)
+
+You'll be generating variations of existing website text to test for better performance. The variations should maintain the core meaning but improve clarity, persuasiveness, and conversion potential.`;
       
-      let userPrompt = `Generate 3 distinct variations of the following content: "${content}"`;
+      // User prompt with context and instructions
+      let userPrompt = `Generate 3 distinct, high-converting variations of the following website content: "${content}"`;
       
       if (prompt) {
-        userPrompt += `\n\nFollowing this specific instruction: ${prompt}`;
+        userPrompt += `\n\nFollow these specific instructions: ${prompt}`;
       }
       
       if (audience) {
@@ -107,10 +116,12 @@ async function generateVariations(content, prompt, audience, intent) {
       }
       
       if (intent) {
-        userPrompt += `\n\nPage intent/goal: ${intent}`;
+        userPrompt += `\n\nPage goal/conversion intent: ${intent}`;
       }
       
-      userPrompt += `\n\nReturn ONLY the three variations as a JSON array, where each item has an 'id' and 'content' field. Do not include explanations or additional text.`;
+      userPrompt += `\n\nReturn ONLY the JSON object with a "variations" array containing the 3 variations. Each variation should have an "id" (1, 2, or 3) and "content" field. Do not include explanations or additional text.`;
+      
+      console.log('Sending prompt to OpenAI:', userPrompt);
       
       // Make the API call
       const response = await openai.chat.completions.create({
@@ -126,6 +137,8 @@ async function generateVariations(content, prompt, audience, intent) {
       
       // Parse the response
       const responseText = response.choices[0].message.content.trim();
+      console.log('OpenAI response:', responseText);
+      
       const jsonResponse = JSON.parse(responseText);
       
       // Return the variations
@@ -155,15 +168,15 @@ function createMockVariations(content) {
   return [
     { 
       id: 1, 
-      content: `✨ ${content} (More engaging version - generated at ${timestamp})` 
+      content: `✨ ${content} (Conversion-focused variant - generated at ${timestamp})` 
     },
     { 
       id: 2, 
-      content: `🚀 ${content} (Action-oriented version - generated at ${timestamp})` 
+      content: `🚀 ${content} (SEO-optimized variant - generated at ${timestamp})` 
     },
     { 
       id: 3, 
-      content: `💯 ${content} (Persuasive version - generated at ${timestamp})` 
+      content: `💯 ${content} (Audience-targeted variant - generated at ${timestamp})` 
     }
   ];
 } 
