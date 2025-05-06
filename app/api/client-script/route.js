@@ -23,11 +23,11 @@ export async function GET(request) {
   
   // For all requests, redirect to the new aicro-script endpoint
   // but maintain any query parameters
-  const queryString = Array.from(url.searchParams.entries())
-    .filter(([key]) => key !== 'redirected') // Prevent redirect loops
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
+  const queryParams = new URLSearchParams(url.search);
+  // Prevent redirect loops
+  queryParams.delete('redirected');
   
+  const queryString = queryParams.toString();
   const redirectUrl = `${host}/api/aicro-script${queryString ? '?' + queryString : ''}`;
   
   // For debugging: if the redirected parameter is present, don't redirect again
