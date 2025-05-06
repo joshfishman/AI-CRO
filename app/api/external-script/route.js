@@ -3,12 +3,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function OPTIONS(request) {
+  // Get the request origin
+  const origin = request.headers.get('origin') || '*';
+  
   return new Response(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
       'Content-Type': 'text/javascript'
     }
@@ -30,16 +34,24 @@ export async function GET(request) {
   const url = new URL(request.url);
   const debug = url.searchParams.get('debug') === 'true';
   
+  // Get the request origin for CORS
+  const origin = request.headers.get('origin') || '*';
+  const referer = request.headers.get('referer');
+  
+  if (debug && referer) {
+    console.log(`[DEBUG] Script requested from referer: ${referer}`);
+  }
+  
   // The actual JavaScript content to be delivered
   const jsContent = `
 /**
  * AI CRO External Script
- * Version: 1.0.0
+ * Version: 1.0.1
  * Properly configured for cross-origin execution
  */
 (function(window, document) {
   // Log initialization if in debug mode
-  ${debug ? `console.log('[AI CRO] External script loaded from ${host}');` : ''}
+  ${debug ? `console.log('[AI CRO] External script loaded from ${host}, origin: ${origin}');` : ''}
   
   // Create global namespace if it doesn't exist
   if (!window.AICRO) {
@@ -47,6 +59,7 @@ export async function GET(request) {
       _debug: ${debug},
       _initialized: false,
       _host: "${host}",
+      _origin: "${origin}",
       
       // Debug method
       debug: function(enable) {
@@ -82,7 +95,7 @@ export async function GET(request) {
         return new Promise((resolve, reject) => {
           // Create script element
           const script = document.createElement('script');
-          script.src = "${selectorUrl}";
+          script.src = "${selectorUrl}?debug=" + (this._debug ? "true" : "false") + "&origin=" + encodeURIComponent(window.location.origin);
           script.async = true;
           script.crossOrigin = "anonymous";
           
@@ -122,10 +135,11 @@ export async function GET(request) {
     status: 200,
     headers: {
       'Content-Type': 'text/javascript; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
-} 
+}

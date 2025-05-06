@@ -3,12 +3,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function OPTIONS(request) {
+  // Get the request origin
+  const origin = request.headers.get('origin') || '*';
+  
   return new Response(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
       'Content-Type': 'text/javascript'
     }
@@ -27,11 +31,28 @@ export async function GET(request) {
   const url = new URL(request.url);
   const debug = url.searchParams.get('debug') === 'true';
   
+  // Get the request origin for CORS
+  let origin = request.headers.get('origin') || '*';
+  
+  // Check if origin was passed in query params (for direct bookmarklet use)
+  const queryOrigin = url.searchParams.get('origin');
+  if (queryOrigin) {
+    origin = queryOrigin;
+    if (debug) {
+      console.log(`[DEBUG] Using origin from query param: ${queryOrigin}`);
+    }
+  }
+  
+  const referer = request.headers.get('referer');
+  if (debug && referer) {
+    console.log(`[DEBUG] Selector module requested from referer: ${referer}`);
+  }
+  
   // The actual JavaScript content to be delivered
   const jsContent = `
 /**
  * AI CRO Selector Module
- * Version: 1.0.0
+ * Version: 1.0.1
  * Properly configured for cross-origin execution
  */
 (function(window, document) {
@@ -308,8 +329,8 @@ export async function GET(request) {
         
         localStorage.setItem('aicro_selection_data', JSON.stringify(selectionData));
         
-        // Redirect to the multi-select page
-        const redirectUrl = \`\${window.AICRO._host}/multi-select\`;
+        // Redirect to the multi-select page with origin info
+        const redirectUrl = \`\${window.AICRO._host}/multi-select?origin=\${encodeURIComponent(window.location.origin)}\`;
         window.AICRO._debug && console.log('[AI CRO] Redirecting to:', redirectUrl);
         window.location.href = redirectUrl;
       } catch (error) {
@@ -396,9 +417,10 @@ export async function GET(request) {
     status: 200,
     headers: {
       'Content-Type': 'text/javascript; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
