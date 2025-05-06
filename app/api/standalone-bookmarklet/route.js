@@ -49,6 +49,20 @@ export async function GET(request) {
       notice.textContent = 'AI CRO Element Selector activated - click on elements to select them';
       document.body.appendChild(notice);
       
+      // Add global event handler to prevent selection when modals are open
+      document.addEventListener('click', function(e) {
+        // Check if modals are open and event target isn't part of the modal
+        if (window.AICRO_SELECTOR.selectingEnabled === false && 
+            !e.target.closest('.aicro-modal-overlay') && 
+            !e.target.closest('.aicro-modal-content') &&
+            !e.target.closest('.aicro-selector-ui')) {
+          // Stop propagation to prevent selection
+          e.stopPropagation();
+          e.preventDefault();
+          return false;
+        }
+      }, true); // Capture phase
+      
       // Setup UI variables
       var selectedElements = [];
       var selectorUI = null;
@@ -375,47 +389,49 @@ export async function GET(request) {
         
         // Content
         const content = document.createElement('div');
-        content.style.cssText = 'padding:16px;overflow-y:auto;flex:1;';
+        content.className = 'aicro-modal-content';
+        content.style.cssText = 'padding:16px;overflow-y:auto;flex:1;pointer-events:auto;';
         
         // Original text section
         content.innerHTML = \`
-          <div style="margin-bottom:16px;">
-            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Selected Element</label>
-            <div style="padding:12px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;margin-bottom:16px;">
-              <div style="font-weight:600;">\${item.type}</div>
-              <div style="white-space:pre-wrap;">\${item.text}</div>
+          <div style="margin-bottom:16px;pointer-events:auto;">
+            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;pointer-events:auto;">Selected Element</label>
+            <div style="padding:12px;border:1px solid #e5e7eb;border-radius:4px;background:#f9fafb;margin-bottom:16px;pointer-events:auto;">
+              <div style="font-weight:600;pointer-events:auto;">\${item.type}</div>
+              <div style="white-space:pre-wrap;pointer-events:auto;">\${item.text}</div>
             </div>
           </div>
           
-          <div style="margin-bottom:16px;">
-            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Text Options</label>
+          <div style="margin-bottom:16px;pointer-events:auto;">
+            <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;pointer-events:auto;">Text Options</label>
             
-            <textarea id="aicro-text-options" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:120px;margin-bottom:12px;">1. More concise version that focuses on benefits
+            <textarea id="aicro-text-options" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:120px;margin-bottom:12px;pointer-events:auto;">1. More concise version that focuses on benefits
 2. Version with stronger call-to-action language
 3. Version targeting your specific audience
 4. Version emphasizing your main goal</textarea>
             
-            <div style="text-align:center;margin-bottom:16px;">
-              <button id="aicro-generate-variations-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;">Generate</button>
+            <div style="text-align:center;margin-bottom:16px;pointer-events:auto;">
+              <button id="aicro-generate-variations-btn" class="aicro-btn aicro-btn-primary" style="min-width:150px;pointer-events:auto;">Generate</button>
             </div>
             
-            <div id="aicro-generation-status" style="text-align:center;margin-bottom:16px;color:#6b7280;display:none;">
+            <div id="aicro-generation-status" style="text-align:center;margin-bottom:16px;color:#6b7280;display:none;pointer-events:auto;">
               Generating variations...
             </div>
             
-            <div id="aicro-generated-variations" style="display:none;">
-              <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;">Generated Variations</label>
-              <div id="aicro-variations-container"></div>
+            <div id="aicro-generated-variations" style="display:none;pointer-events:auto;">
+              <label style="display:block;margin-bottom:4px;font-weight:500;color:#4b5563;pointer-events:auto;">Generated Variations</label>
+              <div id="aicro-variations-container" style="pointer-events:auto;"></div>
             </div>
           </div>
         \`;
         
         // Footer
         const footer = document.createElement('div');
-        footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;';
+        footer.className = 'aicro-modal-footer';
+        footer.style.cssText = 'padding:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;pointer-events:auto;';
         footer.innerHTML = \`
-          <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;">Cancel</button>
-          <button id="aicro-save-variation-btn" class="aicro-btn aicro-btn-primary" disabled>Generate</button>
+          <button class="aicro-modal-cancel aicro-btn aicro-btn-secondary" style="margin-right:8px;pointer-events:auto;">Cancel</button>
+          <button id="aicro-save-variation-btn" class="aicro-btn aicro-btn-primary" disabled style="pointer-events:auto;">Generate</button>
         \`;
         
         // Assemble modal
@@ -442,6 +458,17 @@ export async function GET(request) {
           // Show status
           const statusEl = document.getElementById('aicro-generation-status');
           statusEl.style.display = 'block';
+          
+          // Make sure text areas and buttons are focusable
+          setTimeout(() => {
+            document.querySelectorAll('.aicro-modal-content button, .aicro-modal-content textarea').forEach(el => {
+              el.style.pointerEvents = 'auto';
+            });
+            
+            // Force modal overlay to have pointer events
+            const overlay = document.querySelector('.aicro-modal-overlay');
+            if (overlay) overlay.style.pointerEvents = 'auto';
+          }, 10);
           
           // Get the options from textarea
           const optionsText = document.getElementById('aicro-text-options').value;
@@ -487,12 +514,27 @@ export async function GET(request) {
           // Clear container
           variationsContainer.innerHTML = '';
           
+          // Make sure element selection is still disabled
+          window.AICRO_SELECTOR.selectingEnabled = false;
+          document.body.style.pointerEvents = 'none'; // Ensure pointer events stay disabled on body
+          
+          // Find the modal overlay and ensure it has pointer-events enabled
+          const modalOverlay = document.querySelector('.aicro-modal-overlay');
+          if (modalOverlay) {
+            modalOverlay.style.pointerEvents = 'auto';
+          }
+          
+          // Find all modal content elements and ensure they have pointer-events enabled
+          document.querySelectorAll('.aicro-modal-content, .aicro-text-variation, button, textarea, input').forEach(el => {
+            if (el) el.style.pointerEvents = 'auto';
+          });
+          
           // Add options to container
           if (options.length > 0) {
             options.forEach((option, i) => {
               const variationEl = document.createElement('div');
               variationEl.className = 'aicro-text-variation';
-              variationEl.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;';
+              variationEl.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;cursor:pointer;pointer-events:auto;'; // Ensure it gets pointer events
               variationEl.dataset.variation = option;
               
               variationEl.innerHTML = \`
@@ -529,15 +571,22 @@ export async function GET(request) {
           // Add custom variation input
           const customVariation = document.createElement('div');
           customVariation.className = 'aicro-text-variation';
-          customVariation.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;';
+          customVariation.style.cssText = 'padding:12px;border:1px solid #d1d5db;border-radius:4px;margin-bottom:8px;pointer-events:auto;'; // Ensure it gets pointer events
           
           customVariation.innerHTML = \`
             <div style="margin-bottom:8px;font-weight:500;">Custom Variation</div>
-            <textarea id="aicro-custom-variation" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;" placeholder="Write your own variation..."></textarea>
-            <button id="aicro-use-custom-btn" class="aicro-btn aicro-btn-secondary" style="width:100%;margin-top:8px;">Use This Variation</button>
+            <textarea id="aicro-custom-variation" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;min-height:60px;pointer-events:auto;" placeholder="Write your own variation..."></textarea>
+            <button id="aicro-use-custom-btn" class="aicro-btn aicro-btn-secondary" style="width:100%;margin-top:8px;pointer-events:auto;">Use This Variation</button>
           \`;
           
           variationsContainer.appendChild(customVariation);
+          
+          // Make sure the new elements have pointer-events
+          setTimeout(() => {
+            document.querySelectorAll('.aicro-text-variation, textarea, button').forEach(el => {
+              el.style.pointerEvents = 'auto';
+            });
+          }, 50);
           
           // Add event listener for custom variation button
           document.getElementById('aicro-use-custom-btn').addEventListener('click', () => {
