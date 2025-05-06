@@ -75,7 +75,9 @@ export async function GET(request) {
         ".aicro-result-item { padding: 16px; border-bottom: 1px solid #e5e7eb; cursor: pointer; }",
         ".aicro-result-item:last-child { border-bottom: none; }",
         ".aicro-result-item:hover { background: #f9fafb; }",
-        ".aicro-result-item.selected { background: #eff6ff; border-left: 3px solid #3b82f6; }"
+        ".aicro-result-item.selected { background: #eff6ff; border-left: 3px solid #3b82f6; }",
+        // Add pointer cursor when hovering over elements
+        ".aicro-hover-able { cursor: pointer !important; }"
       ].join("\\n");
       document.head.appendChild(style);
     }
@@ -369,18 +371,16 @@ export async function GET(request) {
       localStorage.setItem('aicro_test_config', JSON.stringify(testConfig));
       
       // Show success message
-      loadingDiv.textContent = 'Variation applied! Redirecting...';
+      loadingDiv.textContent = 'Variation applied successfully!';
       loadingDiv.style.display = 'block';
       loadingDiv.style.background = '#4CAF50';
       loadingDiv.style.color = 'white';
       
-      // Redirect to AI CRO platform
+      // Hide success message after a delay instead of redirecting
       setTimeout(function() {
-        window.location.href = 'https://ai-cro-three.vercel.app/multi-select';
-      }, 1500);
-      
-      // Hide panel
-      hideElementPanel();
+        loadingDiv.style.display = 'none';
+        hideElementPanel();
+      }, 2000);
     }
     
     // Handle mouse movement
@@ -398,6 +398,11 @@ export async function GET(request) {
       // Update currently highlighted element
       currentElement = event.target;
       
+      // Add hover-able class for pointer cursor
+      if (currentElement) {
+        currentElement.classList.add('aicro-hover-able');
+      }
+      
       // Update highlight position
       var rect = event.target.getBoundingClientRect();
       
@@ -414,6 +419,13 @@ export async function GET(request) {
                     '.' + event.target.className.replace(/ /g, '.') : '';
       
       ui.info.textContent = tagName + classes + ' [' + selector + ']';
+    }
+    
+    // Handle mouse out to remove hover class
+    function handleMouseOut(event) {
+      if (event.target && event.target.classList) {
+        event.target.classList.remove('aicro-hover-able');
+      }
     }
     
     // Handle clicks
@@ -465,13 +477,20 @@ export async function GET(request) {
       
       // Remove event handlers
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseout', handleMouseOut); 
       document.removeEventListener('click', handleClick);
+      
+      // Remove any added classes from elements
+      document.querySelectorAll('.aicro-hover-able').forEach(function(el) {
+        el.classList.remove('aicro-hover-able');
+      });
       
       isActive = false;
     }
     
     // Set up event listeners
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('click', handleClick);
     
     // Set up control button event listeners
