@@ -59,7 +59,8 @@ export async function GET(request) {
       window.AICRO_SELECTOR = {
         active: true,
         apiHost: '${host}',
-        pageSettings: {}
+        pageSettings: {},
+        selectingEnabled: true
       };
       
       // Try to load saved page settings from localStorage
@@ -351,15 +352,18 @@ export async function GET(request) {
       
       // Show text options dialog
       function showTextOptionsDialog(item, index, audience, intent) {
-        // Temporarily disable element selection while dialog is open
-        disableElementSelection();
+        // Completely disable element selection while dialog is open
+        window.AICRO_SELECTOR.selectingEnabled = false;
+        document.body.style.pointerEvents = 'none'; // Disable all pointer events on body
         
         // Create modal for text options
         const modalOverlay = document.createElement('div');
-        modalOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center;';
+        modalOverlay.className = 'aicro-modal-overlay';
+        modalOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999999;display:flex;align-items:center;justify-content:center;pointer-events:auto;'; // Enable pointer events on modal
         
         const modal = document.createElement('div');
-        modal.style.cssText = 'background:white;border-radius:8px;width:500px;max-width:90%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+        modal.className = 'aicro-modal-content';
+        modal.style.cssText = 'background:white;border-radius:8px;width:500px;max-width:90%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(0,0,0,0.2);pointer-events:auto;'; // Enable pointer events on modal
         
         // Header
         const header = document.createElement('div');
@@ -426,15 +430,11 @@ export async function GET(request) {
         
         // Event listeners
         document.querySelector('.aicro-modal-close').addEventListener('click', () => {
-          document.body.removeChild(modalOverlay);
-          // Re-enable element selection when dialog is closed
-          enableElementSelection();
+          removeModal(modalOverlay);
         });
         
         document.querySelector('.aicro-modal-cancel').addEventListener('click', () => {
-          document.body.removeChild(modalOverlay);
-          // Re-enable element selection when dialog is closed
-          enableElementSelection();
+          removeModal(modalOverlay);
         });
         
         // Generate button event handler
@@ -461,9 +461,7 @@ export async function GET(request) {
           // Save the variation to the server
           saveVariation(item, selectedVariation, audience, intent);
           
-          document.body.removeChild(modalOverlay);
-          // Re-enable element selection when dialog is closed
-          enableElementSelection();
+          removeModal(modalOverlay);
         });
         
         // Generate variations function
@@ -566,6 +564,14 @@ export async function GET(request) {
             customVariation.style.background = '#f0f7ff';
           });
         }
+      }
+      
+      // Helper function to remove modal and re-enable selection
+      function removeModal(modalOverlay) {
+        document.body.removeChild(modalOverlay);
+        // Re-enable element selection and restore pointer events
+        window.AICRO_SELECTOR.selectingEnabled = true;
+        document.body.style.pointerEvents = '';
       }
       
       // Disable element selection
@@ -678,8 +684,13 @@ export async function GET(request) {
       
       // Add hover effect to elements
       function handleMouseOver(e) {
+        // Don't do anything if selection is disabled
+        if (window.AICRO_SELECTOR && window.AICRO_SELECTOR.selectingEnabled === false) {
+          return;
+        }
+      
         // Ignore our selector UI
-        if (e.target.closest('.aicro-selector-ui')) return;
+        if (e.target.closest('.aicro-selector-ui') || e.target.closest('.aicro-modal-overlay')) return;
         
         // Ignore already selected elements
         if (e.target.classList.contains('aicro-selected')) return;
@@ -693,6 +704,11 @@ export async function GET(request) {
       
       // Remove hover effect
       function handleMouseOut(e) {
+        // Don't do anything if selection is disabled
+        if (window.AICRO_SELECTOR && window.AICRO_SELECTOR.selectingEnabled === false) {
+          return;
+        }
+      
         if (e.target.classList.contains('aicro-highlight')) {
           e.target.classList.remove('aicro-highlight');
         }
@@ -700,8 +716,13 @@ export async function GET(request) {
       
       // Handle element selection on click
       function handleClick(e) {
+        // Don't do anything if selection is disabled
+        if (window.AICRO_SELECTOR && window.AICRO_SELECTOR.selectingEnabled === false) {
+          return;
+        }
+      
         // Ignore clicks on our selector UI
-        if (e.target.closest('.aicro-selector-ui')) return;
+        if (e.target.closest('.aicro-selector-ui') || e.target.closest('.aicro-modal-overlay')) return;
         
         // Only select targetable elements
         if (isTargetableElement(e.target)) {
