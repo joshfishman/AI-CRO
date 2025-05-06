@@ -35,40 +35,6 @@ export default function MultiSelectPage() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h2 className="text-xl font-bold text-blue-600">AI CRO</h2>
-            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-              Beta
-            </span>
-          </div>
-          <nav>
-            <ul className="flex space-x-6">
-              <li>
-                <Link href="/" className="text-gray-600 hover:text-gray-900">
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/bookmarklet" className="text-gray-600 hover:text-gray-900">
-                  Bookmarklet
-                </Link>
-              </li>
-              <li>
-                <Link href="/multi-select" className="text-blue-600 font-medium">
-                  Multi-Select
-                </Link>
-              </li>
-              <li>
-                <Link href="/docs" className="text-gray-600 hover:text-gray-900">
-                  Documentation
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </header>
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-center">

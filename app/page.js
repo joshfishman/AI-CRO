@@ -108,14 +108,17 @@ export default function Home() {
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-2">3. For websites with strict CSP or CORS issues</h3>
           <p className="text-gray-600">
-            If your website has strict Content Security Policies or you're experiencing CORS issues, use our improved direct bookmarklet:
+            If your website has strict Content Security Policies or you're experiencing CORS issues, use our improved solution:
           </p>
-          <div className="mt-4">
-            <Link href="/direct-bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
-              Get Direct Bookmarklet
+          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+            <Link href="/inline-selector" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+              Get Inline Selector
+            </Link>
+            <Link href="/direct-bookmarklet" className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+              Direct Bookmarklet
             </Link>
             <p className="text-gray-600 text-sm mt-2">
-              Our improved bookmarklet bypasses CORS issues and works on any website.
+              Our inline selector is completely self-contained and works on any website with no external dependencies.
             </p>
           </div>
         </div>
@@ -133,19 +136,19 @@ export default function Home() {
         <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
         <ol className="list-decimal list-inside space-y-3">
           <li className="ml-4">
-            <span className="font-medium">Use our improved Direct Bookmarklet:</span>
+            <span className="font-medium">Use our improved Inline Selector:</span>
             <div className="ml-6 mt-2">
-              <Link href="/direct-bookmarklet" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-flex items-center">
+              <Link href="/inline-selector" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-flex items-center">
                 <MdBookmark className="mr-2" />
-                Install Direct Bookmarklet
+                Get Inline Selector
               </Link>
               <p className="text-gray-600 text-sm mt-2">
-                Our improved bookmarklet works on any website, even with strict CSP or CORS restrictions.
+                Our self-contained selector works on any website, even with strict CSP or CORS restrictions.
               </p>
             </div>
           </li>
           <li className="ml-4">
-            <span className="font-medium">Select elements to personalize:</span> Use the bookmarklet to choose elements on your site for personalization or A/B testing.
+            <span className="font-medium">Select elements to personalize:</span> Use the selector to choose elements on your site for personalization or A/B testing.
           </li>
           <li className="ml-4">
             <span className="font-medium">Configure Tests:</span> Set up A/B tests in the <Link href="/admin" className="text-blue-600 hover:text-blue-800">Admin Panel</Link>.
